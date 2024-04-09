@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Profile</title>
+</head>
+
+<body>
+<div id="cart">
+    <a href="{% url 'cart_url'%}">Cart</a>
+</div>
+<form action="{% url 'profile_url' %}" method="post">
+    {% csrf_token %}
+<input type="submit" name="action" value="Logout">
+</form>
+<br>
+<p>Welcome, {{ profile.first_name }} {{ profile.last_name }}</p>
+{% if not profile.is_superuser %}
+<img src="{{ profile.profile_picture.url }}" width="460" height="215">
+{% endif %}
+<hr>
+<h3>Total games in cart: {{ total_games_in_cart }}</h3>
+<table border="1">
+    <tr>
+        <th>Wishlist</th>
+        <th>Cover Image</th>
+        <th>Actions</th>
+    </tr>
+    {% for game in wishlisted_games %}
+    <tr>
+        <td>{{ game.name }}</td>
+        <td><img src="{{ game.image_main }}" width="230" height="107"></td>
+        <td><a href="#">Add to Cart</a> | <a href="#">Delete</a></td>
+    </tr>
+    {% endfor %}
+</table>
+</body>
+</html>

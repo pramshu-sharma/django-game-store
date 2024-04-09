@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login</title>
+</head>
+
+<body>
+
+<form action="{% url 'login_url' %}" method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <input type="submit" value="Login">
+</form>
+
+{% if messages %}
+    {% for message in messages %}
+        <p>{{ message }}</p>
+        <br>
+    {% endfor %}
+{% endif %}
+
+</body>
+</html>

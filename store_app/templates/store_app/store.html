@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Store</title>
+</head>
+<body>
+    <div id="logout">
+        <h4><a href="{% url 'profile_url'%}">{{ user }}</a></h4>
+        <form action="{% url 'profile_url' %}" method="post">
+            {% csrf_token %}
+            <button type="submit" name="action" value="logout">Logout</button>
+        </form>
+        <hr>
+    </div>
+    <div id="filters">
+        <form action='{% url "store_url" %}' method="post">
+            {% csrf_token %}
+            <label for="min_price">Min Price: </label>
+            <input type="number" step='any' id="min_price" name="min_price_field" placeholder="{{min_price}}">
+            <label for="max_price">Max Price: </label>
+            <input type="number" step='any' id="max_price" name="max_price_field" placeholder="{{max_price}}">
+            <button type="submit" name="action" value="filter_price">Filter</button>
+        </form>
+        <hr>
+    </div>
+    <div id="games">
+        <table border="1">
+            <tr>
+                <th>Name</th>
+                <th>Cover Image</th>
+                <th>Price</th>
+                <th>Genre(s)</th>
+                <th>Platform(s)</th>
+                <th>Actions</th>
+            </tr>
+            {% for game in page_obj %}
+            <tr>
+                <td><a href="{% url 'game_url' game.app_id %}">{{ game.name }}</a></td>
+                <td><img src="{{ game.image_main }}" width="230" height="107"></td>
+                {% if game.price == 0 %}
+                <td>Free to Play</td>
+                {% else %}
+                <td>${{ game.price }}</td>
+                {% endif %}
+                <td>{{ game.genre }}</td>
+                <td>
+                    {% if game.windows %}
+                    Windows<br>
+                    {% endif %}
+                    {% if game.mac %}
+                    MacOS<br>
+                    {% endif %}
+                    {% if game.linux %}
+                    Linux
+                    {% endif %}
+                </td>
+                <td>
+                    <form action="#" method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="app_id" value="{{ game.app_id }}">
+                        {% if game.price != 0 %}
+                            {% if game.app_id in games_in_cart %}
+                                <p><button type="submit" name="action" value="add_to_cart" disabled>Add to Cart</button></p>
+                            {% else %}
+                                <p><button type="submit" name="action" value="add_to_cart">Add to Cart</button></p>
+                            {% endif %}
+                            {% if game.app_id in wishlisted_games %}
+                                <p><button type="submit" name="action" value="remove_from_wishlist">Remove From Wishlist</button></p>
+                            {% else %}
+                                <p><button type="submit" name="action" value="add_to_wishlist">Add to Wishlist</button></p>
+                            {% endif %}
+                        {% else %}
+                            <p><button type="submit" name="action" value="get_game">Get</button></p>
+                        {% endif %}
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+    <br>
+    <div id="pagination">
+        {% if page_obj.has_previous %}
+            <a href="?page=1">&laquo; first</a>
+            <a href="?page={{ page_obj.previous_page_number }}">previous</a>
+        {% endif %}
+        <span class="current">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.</span>
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}">next</a>
+            <a href="?page={{ page_obj.paginator.num_pages }}">last &raquo;</a>
+        {% endif %}
+    </div>
+</body>
+</html>

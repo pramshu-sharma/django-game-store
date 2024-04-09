@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Cart</title>
+</head>
+<body>
+<a href="{% url 'profile_url'%}">Profile</a>
+<h3>Your Cart:</h3>
+<table border="1">
+    <tr>
+        <th>Name</th>
+        <th>Cover Image</th>
+        <th>Price</th>
+    </tr>
+{% for game in games_in_cart %}
+    <tr>
+        <td>{{ game.name }}</td>
+        <td><img src="{{ game.image_main }}" width="115" height="54"></td>
+        <td>${{ game.price }}</td>
+    </tr>
+{% endfor %}
+    <tr>
+        <td></td>
+        <td>Total</td>
+        <td>${{ total_price }}</td>
+    </tr>
+</table>
+</body>
+</html>

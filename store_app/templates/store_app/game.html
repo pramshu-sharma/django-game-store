@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ game.name }}</title>
+</head>
+<body>
+<h1>{{ game.name }}</h1>
+<img src="{{ game.image_main }}">
+{% if video %}
+<video width="460" height="215" controls autoplay muted>
+    <source src="{{ video }}" type="video/mp4">
+</video>
+{% endif %}
+<p><strong>Release Date:</strong> {{ game.release_date }}</p>
+<p><strong>Description:</strong> {{ game.description_long }}</p>
+<p><strong>Price:</strong> {{ game.price }}</p>
+<p><strong>Categories:</strong></p>
+{% if categories %}
+<ul>
+    {% for category in categories %}
+    <li>{{ category }}</li>
+    {% endfor %}
+</ul>
+{% endif %}
+
+</body>
+</html>

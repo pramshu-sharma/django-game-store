@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Index</title>
+</head>
+<body>
+
+<table border="1">
+
+    <tr>
+        <th>URLs</th>
+    </tr>
+    {% for url_name, url in urls %}
+        <tr>
+            <td><a href="{{ url }}">{{ url_name }}</a></td>
+        </tr>
+    {% endfor %}
+
+</table>
+
+
+</body>
+</html>
