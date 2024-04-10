@@ -21,6 +21,7 @@ class Games(models.Model):
     release_date = models.DateField(null=True)
     required_age = models.PositiveSmallIntegerField(null=True)
     price = models.DecimalField(max_digits=10, decimal_places=2, null=True)
+    sale_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, default=0)
     dlc_count = models.IntegerField(null=True)
     description_long = models.TextField(null=True)
     description_short = models.TextField(null=True)

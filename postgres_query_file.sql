@@ -13,3 +13,5 @@ join store_app_games sag on sag.id = sapg.game_id;
 -- case when price = 0 then 1
 -- else price end as custom_price
 -- from store_app_games
+
+select name, price, sale_price from store_app_games sag;

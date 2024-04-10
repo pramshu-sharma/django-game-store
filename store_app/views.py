@@ -12,11 +12,12 @@ from django.urls import get_resolver, reverse
 from .forms import RegistrationForm, LoginForm
 from .models import Games, CustomUser, Wishlist, Cart, PublisherGame, Publisher, SalePublisher
 
+import datetime
 import os
 import random
 
 
-def login_view(request):
+def login_view(request): # needs to check incorrect username and password
     if request.user.is_authenticated:
         return redirect('store_url')
 
@@ -193,21 +194,50 @@ def cart_view(request):
 
     context = {'games_in_cart': games_in_cart, 'total_price': total_price}
     return render(request, 'store_app/cart.html', context)
+
+@login_required(login_url='login_url')
 def index_view(request):
-    resolver = get_resolver()
-    patterns = resolver.reverse_dict.keys()
+    today = datetime.datetime.now().date()
 
-    urls = [(name, resolver.reverse_dict[name][0][0][0]) for name in patterns]
+    if request.user.is_superuser:
+        resolver = get_resolver()
+        patterns = resolver.reverse_dict.keys()
+        urls = [(name, resolver.reverse_dict[name][0][0][0]) for name in patterns]
 
-    context = {'urls': urls}
-    return render(request, 'store_app/index.html', context)
+        context = {
+            'urls': urls
+        }
+
+        if request.method == 'POST':
+            action = request.POST.get('action')
+
+            if action == 'set-sale-status':
+                publishers_on_sale = SalePublisher.objects.filter(
+                    start_date__lte=today, end_date__gte=today).values_list(
+                    'publisher_id', flat=True)
+
+                if not publishers_on_sale:
+                    messages.info(request, 'No publishers are on sale.')
+
+                Publisher.objects.filter(id__in=publishers_on_sale).update(on_sale=True)
+                Publisher.objects.exclude(id__in=publishers_on_sale).update(on_sale=False)
+
+                context['publishers_on_sale'] = publishers_on_sale
+                return render(request, 'store_app/index.html', context)
+
+            if action == 'set-sale-prices':
+                pass
+
+        return render(request, 'store_app/index.html', context)
+    else:
+        return redirect('login_url')
+
+
+
 
 @login_required(login_url='login_url')
 def home_view(request):
-    sale_publisher = SalePublisher.objects.annotate(
-        game=F('publisher__publishergame__game__name')).annotate(
-        price=F('publisher__publishergame__game__price')
-    )
 
-    context = {'sale_publisher': sale_publisher}
+
+    context = {}
     return render(request, 'store_app/home.html', context)

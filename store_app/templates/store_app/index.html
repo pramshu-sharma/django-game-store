@@ -18,7 +18,26 @@
     {% endfor %}
 
 </table>
-
-
+<br>
+<form action="{% url 'index_url' %}" method="post">
+    {% csrf_token %}
+    <button type="submit" name="action" value="set-sale-status">Set Sale Status: Use to update on_sale status on publisher table</button>
+    <p>
+    <button type="submit" name="action" value="set-sale-prices">Set Sale Prices: Use to update sale_price on games table </button>
+</form>
+{% if messages %}
+    {% for message in messages %}
+        <p>{{ message }}</p>
+    {% endfor %}
+{% endif %}
+<br>
+{% if publishers_on_sale %}
+<p>Sale status updated for:</p>
+<ul>
+{% for publisher in publishers_on_sale %}
+    <li>{{ publisher }}</li>
+{% endfor %}
+</ul>
+{% endif %}
 </body>
 </html>
