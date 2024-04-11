@@ -21,9 +21,7 @@
 <hr>
 <form action="{% url 'index_url' %}" method="post">
     {% csrf_token %}
-    <button type="submit" name="action" value="set-sale-status">Set Sale Status: Use to update on_sale status on publisher table</button>
-    <p>
-    <button type="submit" name="action" value="set-sale-prices">Set Sale Prices: Use to update sale_price on games table </button>
+    <button type="submit" name="action" value="set-sale-prices">Set Sale Prices</button>
 </form>
 {% if messages %}
 <hr>
@@ -32,18 +30,9 @@
     {% endfor %}
 {% endif %}
 
-{% if publishers_on_sale %}
-<hr>
-<p>Sale status updated for:</p>
-<ul>
-{% for publisher in publishers_on_sale %}
-    <li>{{ publisher }}</li>
-{% endfor %}
-</ul>
-{% endif %}
-
-{% if sale_price_update_count %}
-<p>Sale price updated for: {{ sale_price_update_count }} games.</p>
+<br>
+{% if games_on_sale %}
+<p>Sale Price updated for: {{ games_on_sale }} games</p>
 {% endif %}
 </body>
 </html>

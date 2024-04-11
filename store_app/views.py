@@ -211,22 +211,12 @@ def index_view(request):
         if request.method == 'POST':
             action = request.POST.get('action')
 
-            if action == 'set-sale-status':
-                publishers_on_sale = SalePublisher.objects.filter(
-                    start_date__lte=today, end_date__gte=today).values_list(
-                    'publisher_id', flat=True)
-
-                if not publishers_on_sale:
-                    messages.info(request, 'No publishers are on sale.')
-
-                Publisher.objects.filter(id__in=publishers_on_sale).update(on_sale=True)
-                Publisher.objects.exclude(id__in=publishers_on_sale).update(on_sale=False)
-
-                context['publishers_on_sale'] = publishers_on_sale
-                return render(request, 'store_app/index.html', context)
-
-            if action == 'set-sale-prices': # logic needs to inquire for on_sale field on model: publisher
-                games_on_sale = SalePublisher.objects.annotate(game_id=F('publisher__publishergame__game')).values('game_id', 'sale_percent')
+            if action == 'set-sale-prices': # logic needs to inquire for games that were on sale but now are not
+                games_on_sale = SalePublisher.objects.annotate(
+                    game_id=F('publisher__publishergame__game')).filter(
+                    start_date__lte=today, end_date__gte=today
+                    ).values(
+                    'game_id', 'sale_percent')
 
                 for sale_info in games_on_sale:
                     game_id = sale_info['game_id']
@@ -239,7 +229,10 @@ def index_view(request):
                         game.sale_price = new_sale_price
                         game.save()
 
-                context['sale_price_update_count'] = len(games_on_sale)
+                games_on_sale_ids = games_on_sale.values('game_id')
+                Games.objects.exclude(id__in=games_on_sale_ids).update(sale_price=0)
+
+                context['games_on_sale'] = len(games_on_sale_ids)
                 return render(request, 'store_app/index.html', context)
 
         return render(request, 'store_app/index.html', context)

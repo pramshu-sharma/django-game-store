@@ -80,7 +80,6 @@ class Cart(models.Model):
 
 class Publisher(models.Model):
     publisher = models.CharField(max_length=200)
-    on_sale = models.BooleanField(default=False)
     create_ts = models.DateTimeField(auto_now_add=True, blank=True)
     update_ts = models.DateTimeField(auto_now=True, blank=True)
 
