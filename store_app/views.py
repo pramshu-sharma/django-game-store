@@ -225,12 +225,26 @@ def index_view(request):
                 context['publishers_on_sale'] = publishers_on_sale
                 return render(request, 'store_app/index.html', context)
 
-            if action == 'set-sale-prices':
-                pass
+            if action == 'set-sale-prices': # logic needs to inquire for on_sale field on model: publisher
+                games_on_sale = SalePublisher.objects.annotate(game_id=F('publisher__publishergame__game')).values('game_id', 'sale_percent')
+
+                for sale_info in games_on_sale:
+                    game_id = sale_info['game_id']
+                    sale_percent = sale_info['sale_percent']
+
+                    game = Games.objects.get(id=game_id)
+
+                    if game.price != 0:
+                        new_sale_price = round(game.price - game.price * sale_percent, 2)
+                        game.sale_price = new_sale_price
+                        game.save()
+
+                context['sale_price_update_count'] = len(games_on_sale)
+                return render(request, 'store_app/index.html', context)
 
         return render(request, 'store_app/index.html', context)
     else:
-        return redirect('login_url')
+        return redirect('home_url')
 
 
 
