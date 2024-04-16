@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Home</title>
+<style>
+    .hidden {
+        display: none;
+    }
+</style>
+<script>
+    document.addEventListener("DOMContentLoaded", function(){
+        const showAllButton = document.getElementById('show-all');
+        const hiddenGenres = document.querySelectorAll('#genres-list .hidden');
+    
+        showAllButton.addEventListener('click', function(){
+            hiddenGenres.forEach(genre => {
+                genre.classList.remove('hidden');
+            });
+            showAllButton.style.display = 'none';
+        });
+    });
+</script>
+</head>
+<body>
+{% if selected_platforms %}
+    {{ selected_platforms }}
+{% endif %}
+<form action="{% url 'test_url' %}" method="post">
+    {% csrf_token %}
+    <input type="checkbox" id="checkbox-windows" name="platform-checkbox" value="windows">
+    <label for="checkbox-windows">Windows</label>
+    <input type="checkbox" id="checkbox-mac" name="platform-checkbox" value="mac">
+    <label for="checkbox-mac">Mac</label>
+    <input type="checkbox" id="checkbox-linux" name="platform-checkbox" value="linux">
+    <label for="checkbox-mac">Linux</label>
+    <br>
+    <button type="submit" name="action" value="filter_platform">Filter Platforms</button>
+</form>
+<table border="1">
+    <tr>
+        <th>Game</th>
+        <th>Windows</th>
+        <th>Mac</th>
+        <th>Linux</th>
+    </tr>
+    {% for game in games_and_platforms %}
+    <tr>
+    <td><img src="{{ game.image_main }}" width="230" height="107"></td>
+    <td>{{ game.windows }}</td>
+    <td>{{ game.mac }}</td>
+    <td>{{ game.linux }}</td>
+    </tr>
+    {% endfor %}
+</table>
+
+</body>
+</html>
+

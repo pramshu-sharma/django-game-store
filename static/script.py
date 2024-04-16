@@ -1,4 +1,7 @@
-game_price = 9.99
-sale_percent = 0.2
+dict_1 = {
+    'A': 1,
+    'B': 2
+}
 
-print(round((game_price - game_price * sale_percent), 2))
+for key in dict_1.keys():
+    print(key)

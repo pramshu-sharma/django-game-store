@@ -14,7 +14,7 @@
 {% endif %}
 <p><strong>Release Date:</strong> {{ game.release_date }}</p>
 <p><strong>Description:</strong> {{ game.description_long }}</p>
-<p><strong>Price:</strong> {{ game.price }}</p>
+<p><strong>Price:</strong>{% if game.sale_price %} [ON SALE] ${{ game.sale_price }} <s>${{ game.price }}</s>{% else %} ${{ game.price }}{% endif %}</p>
 <p><strong>Categories:</strong></p>
 {% if categories %}
 <ul>

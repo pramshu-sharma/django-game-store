@@ -1,11 +1,6 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Login</title>
-</head>
-
-<body>
+{% extends 'base.html' %}
+{% block title %}Login{% endblock %}
+{% block body %}
 
 <form action="{% url 'login_url' %}" method="post">
     {% csrf_token %}
@@ -20,5 +15,4 @@
     {% endfor %}
 {% endif %}
 
-</body>
-</html>
+{% endblock %}

@@ -2,20 +2,26 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth.decorators import login_required
+from django.contrib.postgres.aggregates import StringAgg
 from django.core.paginator import Paginator
-from django.db.models import Q, F, Sum, Case, When, Value, FloatField
+from django.db.models.functions import Concat
+from django.db.models import Q, F, Sum, Case, When, Value, FloatField, CharField
 from django.http import HttpResponse,HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django.shortcuts import render, redirect
 from django.urls import get_resolver, reverse
 
 from .forms import RegistrationForm, LoginForm
-from .models import Games, CustomUser, Wishlist, Cart, PublisherGame, Publisher, SalePublisher
+from .models import Games, CustomUser, Wishlist, Cart, PublisherGame, Publisher, SalePublisher, Genre, GenreGame
 
 import datetime
 import os
 import random
 
+"""
+need master template for all pages
+pages to add: about, contact, checkout
+"""
 
 def login_view(request): # needs to check incorrect username and password
     if request.user.is_authenticated:
@@ -86,7 +92,9 @@ def registration_view(request):
     
 @login_required(login_url='login_url')
 def game_view(request, app_id):
+
     game = get_object_or_404(Games, app_id=app_id)
+    print(game.sale_price)
     categories = game.category.split(',')
     if game.video:
         if ',' in  game.video:
@@ -101,6 +109,9 @@ def game_view(request, app_id):
 
 @login_required(login_url='login_url')
 def store_view(request):
+    """
+    filters: Publisher, Genre
+    """
     if request.method == 'POST':
         action = request.POST.get('action')
 
@@ -108,12 +119,23 @@ def store_view(request):
             logout(request)
             return redirect('login_url')
 
-        if action == 'filter_price':
+        if action == 'filter_store':
             min_price = request.POST.get('min_price_field')
             max_price = request.POST.get('max_price_field')
+            selected_genres = request.POST.getlist('genre-checkbox')
 
             request.session['min_price'] = float(min_price) if min_price != '' else 0
-            request.session['max_price'] = float(max_price) if max_price != '' else 0
+            request.session['max_price'] = float(max_price) if max_price != '' else 999999999
+            request.session['selected_genres'] = selected_genres
+
+            return HttpResponseRedirect(reverse('store_url'))
+
+        if action == 'clear_filter_store':
+            keys_to_flush = ['min_price', 'max_price', 'selected_genres']
+
+            for key in list(request.session.keys()):
+                if key in keys_to_flush:
+                    del request.session[key]
 
             return HttpResponseRedirect(reverse('store_url'))
 
@@ -142,15 +164,35 @@ def store_view(request):
     min_price = request.session.get('min_price', 0)
     max_price = request.session.get('max_price', 999999999)
 
-    store_games = Games.objects.filter(
-        price__gte=min_price, price__lte=max_price).order_by(
-        '-reviews_positive').values(
-        'app_id', 'name', 'price', 'image_main', 'genre', 'windows', 'mac', 'linux')
+    if 'selected_genres' in request.session and request.session['selected_genres'] is not None:
+        query = Q()
+        for genre in request.session['selected_genres']:
+            q_object = Q(**{'genres_all__icontains': genre})
+            query &= q_object
+
+        store_games = Games.objects.annotate(genres_all=StringAgg(
+            'genregame__genre__genre',
+            delimiter=', '
+        )).filter(query).filter(
+            price__gte=min_price, price__lte=max_price
+        ).order_by(
+            '-peak_player_count').values()
+    else:
+        store_games = Games.objects.filter(
+            price__gte=min_price, price__lte=max_price).values(
+            'app_id', 'name', 'price', 'sale_price', 'image_main', 'windows', 'mac', 'linux').annotate(
+            genres_all=StringAgg(
+                F('genregame__genre__genre'),
+                delimiter=', '
+            )
+        ).order_by(
+            '-peak_player_count')
 
     wishlisted_games = Wishlist.objects.filter(user_id=request.user).values_list('game_id', flat=True)
     games_in_cart = Cart.objects.filter(user_id=request.user).values_list('game_id', flat=True)
+    genres = Genre.objects.values_list('genre', flat=True)
 
-    paginator = Paginator(store_games, 8)
+    paginator = Paginator(store_games, 5)
 
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
@@ -159,6 +201,7 @@ def store_view(request):
         'page_obj': page_obj,
         'min_price': min_price,
         'max_price': max_price if max_price != 999999999 else 0,
+        'genres': genres,
         'wishlisted_games': wishlisted_games,
         'games_in_cart': games_in_cart,
         'user': request.user
@@ -167,6 +210,9 @@ def store_view(request):
 
 @login_required(login_url='login_url')
 def profile_view(request):
+    """
+    Edit profile attributes
+    """
     if request.method == 'POST':
         logout(request)
         return redirect('login_url')
@@ -239,12 +285,24 @@ def index_view(request):
     else:
         return redirect('home_url')
 
+def test_view(request):
+    '''
+    integrate with store view
+    '''
+    games_and_platforms = Games.objects.values('image_main', 'windows', 'mac', 'linux').order_by('-peak_player_count')[:100]
+    context = {'games_and_platforms': games_and_platforms}
 
+    if request.method == 'POST':
+        selected_platforms = request.POST.getlist('platform-checkbox')
+        query = Q()
 
+        for platform in selected_platforms:
+            q_object = Q(**{platform:1})
+            query &= q_object
 
-@login_required(login_url='login_url')
-def home_view(request):
+        games_and_platforms = Games.objects.values('image_main', 'windows', 'mac', 'linux').filter(query).order_by(
+            '-peak_player_count')[:100]
+        context['games_and_platforms'] = games_and_platforms
+        return render(request, 'store_app/test.html', context)
 
-
-    context = {}
-    return render(request, 'store_app/home.html', context)
+    return render(request, 'store_app/test.html', context)

@@ -40,7 +40,6 @@ class Games(models.Model):
     reviews_ratio_p_to_n = models.FloatField(default=None)
     peak_player_count = models.IntegerField(null=True)
     screenshot = models.TextField(null=True)
-    genre = models.TextField(null=True)
     developer = models.TextField(null=True)
     video = models.TextField(null=True)
     category = models.TextField(null=True)
@@ -132,3 +131,13 @@ class SalePublisher(models.Model):
         self.check_if_sale_active()
 
 
+class Genre(models.Model):
+    genre = models.CharField(max_length=100)
+
+
+class GenreGame(models.Model):
+    genre = models.ForeignKey(Genre, on_delete=models.CASCADE)
+    game = models.ForeignKey(Games, on_delete=models.CASCADE)
+
+    class Meta:
+        unique_together = ('genre', 'game')

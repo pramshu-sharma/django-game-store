@@ -1,10 +1,7 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Store</title>
-</head>
-<body>
+{% extends 'base.html' %}
+{% block title %}Store{% endblock %}
+{% block body %}
+
     <div id="logout">
         <h4><a href="{% url 'profile_url'%}">{{ user }}</a></h4>
         <form action="{% url 'profile_url' %}" method="post">
@@ -20,12 +17,24 @@
             <input type="number" step='any' id="min_price" name="min_price_field" placeholder="{{min_price}}">
             <label for="max_price">Max Price: </label>
             <input type="number" step='any' id="max_price" name="max_price_field" placeholder="{{max_price}}">
-            <button type="submit" name="action" value="filter_price">Filter</button>
+            <br>
+            {% for genre in genres %}
+            {% if genre in request.session.selected_genres %}
+            <input type="checkbox" id="genre-checkbox-checked-{{ forloop.counter }}" name="genre-checkbox" value="{{genre}}" checked>
+            <label for="genre-checkbox-{{ forloop.counter }}">{{genre}}</label>
+            {% else %}
+            <input type="checkbox" id="genre-checkbox-{{ forloop.counter }}" name="genre-checkbox" value="{{genre}}">
+            <label for="genre-checkbox-{{ forloop.counter }}">{{genre}}</label>
+            {% endif %}
+            {% endfor %}
+            <br>
+            <button type="submit" name="action" value="filter_store">Filter</button>
+            <button type="submit" name="action" value="clear_filter_store">Clear</button>
         </form>
         <hr>
     </div>
     <div id="games">
-        <table border="1">
+        <table class="table" border="1">
             <tr>
                 <th>Name</th>
                 <th>Cover Image</th>
@@ -40,10 +49,12 @@
                 <td><img src="{{ game.image_main }}" width="230" height="107"></td>
                 {% if game.price == 0 %}
                 <td>Free to Play</td>
+                {% elif game.sale_price %}
+                <td>${{ game.sale_price }}<br><s>${{ game.price }}</s></td>
                 {% else %}
                 <td>${{ game.price }}</td>
                 {% endif %}
-                <td>{{ game.genre }}</td>
+                <td>{{ game.genres_all }}</td>
                 <td>
                     {% if game.windows %}
                     Windows<br>
@@ -82,14 +93,13 @@
     <br>
     <div id="pagination">
         {% if page_obj.has_previous %}
-            <a href="?page=1">&laquo; first</a>
-            <a href="?page={{ page_obj.previous_page_number }}">previous</a>
+        <a class="page-link" href="?page=1">&laquo; first</a>
+           <a class="page-link" href="?page={{ page_obj.previous_page_number }}">previous</a>
         {% endif %}
-        <span class="current">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.</span>
+        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
         {% if page_obj.has_next %}
-            <a href="?page={{ page_obj.next_page_number }}">next</a>
-            <a href="?page={{ page_obj.paginator.num_pages }}">last &raquo;</a>
+            <a class="page-link" href="?page={{ page_obj.next_page_number }}">next</a>
+            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">last &raquo;</a>
         {% endif %}
     </div>
-</body>
-</html>
+{% endblock %}
