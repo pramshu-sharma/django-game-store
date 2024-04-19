@@ -3,5 +3,5 @@ dict_1 = {
     'B': 2
 }
 
-for key in dict_1.keys():
-    print(key)
+dict_1.pop('B')
+print(dict_1)

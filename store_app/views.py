@@ -4,8 +4,8 @@ from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.postgres.aggregates import StringAgg
 from django.core.paginator import Paginator
-from django.db.models.functions import Concat
-from django.db.models import Q, F, Sum, Case, When, Value, FloatField, CharField
+from django.db.models.functions import Concat, Substr, Upper
+from django.db.models import Q, F, Sum, Case, When, Value, FloatField, CharField, Count
 from django.http import HttpResponse,HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django.shortcuts import render, redirect
@@ -109,9 +109,6 @@ def game_view(request, app_id):
 
 @login_required(login_url='login_url')
 def store_view(request):
-    """
-    filters: Publisher, Genre
-    """
     if request.method == 'POST':
         action = request.POST.get('action')
 
@@ -120,24 +117,27 @@ def store_view(request):
             return redirect('login_url')
 
         if action == 'filter_store':
-            min_price = request.POST.get('min_price_field')
-            max_price = request.POST.get('max_price_field')
-            selected_genres = request.POST.getlist('genre-checkbox')
+            request.session['selected_genres'] = request.POST.getlist('genre-checkbox')
+            request.session['selected_platforms'] = request.POST.getlist('platform-checkbox[]')
 
-            request.session['min_price'] = float(min_price) if min_price != '' else 0
-            request.session['max_price'] = float(max_price) if max_price != '' else 999999999
-            request.session['selected_genres'] = selected_genres
+            previous_min_price, previous_max_price = '', ''
+            request_min_price, request_max_price = request.POST.get('min_price_field'), request.POST.get('max_price_field')
+
+            if (request_min_price != '' and request_min_price != previous_min_price) and (request_max_price != '' and request_max_price != previous_max_price):
+                request.session['selected_prices'] = (request_min_price, request_max_price)
+
+            previous_min_price, previous_max_price = request.session['min_price'], request.session['max_price']
 
             return HttpResponseRedirect(reverse('store_url'))
 
         if action == 'clear_filter_store':
-            keys_to_flush = ['min_price', 'max_price', 'selected_genres']
+            keys_to_flush = ['selected_genres', 'selected_platforms', 'selected_prices']
 
             for key in list(request.session.keys()):
                 if key in keys_to_flush:
                     del request.session[key]
 
-            return HttpResponseRedirect(reverse('store_url'))
+            return HttpResponseRedirect(reverse('test_url'))
 
         if action == 'add_to_cart':
             user_id = request.user.id
@@ -160,37 +160,46 @@ def store_view(request):
             remove_game_from_wishlist = Wishlist.objects.filter(game_id=game_id, user_id=user_id)
             remove_game_from_wishlist.delete()
 
+    store_games = Games.objects.values(
+        'app_id', 'name', 'price', 'sale_price', 'image_main', 'windows', 'mac', 'linux').annotate(
+        genres_all=StringAgg(
+            F('genregame__genre__genre'),
+            delimiter=', '
+        )
+    ).order_by(
+        '-peak_player_count')
 
-    min_price = request.session.get('min_price', 0)
-    max_price = request.session.get('max_price', 999999999)
+    if 'selected_prices' in request.session and request.session['selected_prices'] is not None:
+        min_price, max_price = request.session['selected_prices'][0], request.session['selected_prices'][1]
+
+        if min_price and max_price:
+            min_price, max_price = float(min_price), float(max_price)
+            store_games = store_games.filter(price__gte=min_price, price__lte=max_price).order_by('-price')
+
 
     if 'selected_genres' in request.session and request.session['selected_genres'] is not None:
-        query = Q()
+        query_genre = Q()
         for genre in request.session['selected_genres']:
             q_object = Q(**{'genres_all__icontains': genre})
-            query &= q_object
+            query_genre &= q_object
 
-        store_games = Games.objects.annotate(genres_all=StringAgg(
-            'genregame__genre__genre',
-            delimiter=', '
-        )).filter(query).filter(
-            price__gte=min_price, price__lte=max_price
-        ).order_by(
-            '-peak_player_count').values()
-    else:
-        store_games = Games.objects.filter(
-            price__gte=min_price, price__lte=max_price).values(
-            'app_id', 'name', 'price', 'sale_price', 'image_main', 'windows', 'mac', 'linux').annotate(
-            genres_all=StringAgg(
-                F('genregame__genre__genre'),
-                delimiter=', '
-            )
-        ).order_by(
-            '-peak_player_count')
+        store_games = store_games.filter(query_genre)
+
+    if 'selected_platforms' in request.session and request.session['selected_platforms'] is not None:
+        query_platform = Q()
+        for platform in request.session['selected_platforms']:
+            q_object = Q(**{platform: 1})
+            query_platform &= q_object
+
+        store_games = store_games.filter(query_platform)
+
 
     wishlisted_games = Wishlist.objects.filter(user_id=request.user).values_list('game_id', flat=True)
     games_in_cart = Cart.objects.filter(user_id=request.user).values_list('game_id', flat=True)
     genres = Genre.objects.values_list('genre', flat=True)
+    publishers = Publisher.objects.annotate(
+        game_count=Count('publishergame__game')
+    ).values('publisher', 'game_count').order_by('-game_count')[:10]
 
     paginator = Paginator(store_games, 5)
 
@@ -199,12 +208,11 @@ def store_view(request):
 
     context = {
         'page_obj': page_obj,
-        'min_price': min_price,
-        'max_price': max_price if max_price != 999999999 else 0,
         'genres': genres,
         'wishlisted_games': wishlisted_games,
         'games_in_cart': games_in_cart,
-        'user': request.user
+        'user': request.user,
+        'publishers': publishers
     }
     return render(request, 'store_app/store.html', context)
 
@@ -285,24 +293,22 @@ def index_view(request):
     else:
         return redirect('home_url')
 
+def publishers_view(request):
+    numbered_first_letters = ['0', '1', '2', '3', '4' , '5', '6', '7', '8', '9']
+
+    publishers = Publisher.objects.annotate(
+        first_letter=Upper(Substr('publisher', 1, 1))).annotate(
+        publisher_first_letter=
+        Case(
+            When(first_letter__in=numbered_first_letters, then=Value('0 - 9')),
+                    default=F('first_letter'),
+                    output_field=CharField()
+        )
+    ).order_by('publisher_first_letter')
+
+
+    context = {'publishers': publishers}
+    return render(request, 'store_app/publishers.html', context)
+
 def test_view(request):
-    '''
-    integrate with store view
-    '''
-    games_and_platforms = Games.objects.values('image_main', 'windows', 'mac', 'linux').order_by('-peak_player_count')[:100]
-    context = {'games_and_platforms': games_and_platforms}
-
-    if request.method == 'POST':
-        selected_platforms = request.POST.getlist('platform-checkbox')
-        query = Q()
-
-        for platform in selected_platforms:
-            q_object = Q(**{platform:1})
-            query &= q_object
-
-        games_and_platforms = Games.objects.values('image_main', 'windows', 'mac', 'linux').filter(query).order_by(
-            '-peak_player_count')[:100]
-        context['games_and_platforms'] = games_and_platforms
-        return render(request, 'store_app/test.html', context)
-
-    return render(request, 'store_app/test.html', context)
+    pass

@@ -1,7 +1,6 @@
 {% extends 'base.html' %}
 {% block title %}Store{% endblock %}
 {% block body %}
-
     <div id="logout">
         <h4><a href="{% url 'profile_url'%}">{{ user }}</a></h4>
         <form action="{% url 'profile_url' %}" method="post">
@@ -13,11 +12,13 @@
     <div id="filters">
         <form action='{% url "store_url" %}' method="post">
             {% csrf_token %}
+            <strong>Price:</strong><br>
             <label for="min_price">Min Price: </label>
-            <input type="number" step='any' id="min_price" name="min_price_field" placeholder="{{min_price}}">
+            <input type="number" step='any' id="min_price" name="min_price_field" placeholder="{{request.session.selected_prices.0}}">
             <label for="max_price">Max Price: </label>
-            <input type="number" step='any' id="max_price" name="max_price_field" placeholder="{{max_price}}">
+            <input type="number" step='any' id="max_price" name="max_price_field" placeholder="{{request.session.selected_prices.1}}">
             <br>
+            <strong>Genres:</strong><br>
             {% for genre in genres %}
             {% if genre in request.session.selected_genres %}
             <input type="checkbox" id="genre-checkbox-checked-{{ forloop.counter }}" name="genre-checkbox" value="{{genre}}" checked>
@@ -28,9 +29,37 @@
             {% endif %}
             {% endfor %}
             <br>
+            <strong>Platforms:</strong><br>
+            {% if 'windows' in request.session.selected_platforms %}
+            <input type="checkbox" id="checkbox-windows-checked" name="platform-checkbox[]" value="windows" checked>
+            <label for="checkbox-windows-checked">Windows</label>
+            {% else %}
+            <input type="checkbox" id="checkbox-windows" name="platform-checkbox[]" value="windows">
+            <label for="checkbox-windows">Windows</label>
+            {% endif %}
+            {% if 'mac' in request.session.selected_platforms %}
+            <input type="checkbox" id="checkbox-mac-checked" name="platform-checkbox[]" value="mac" checked>
+            <label for="checkbox-mac-checked">MacOS</label>
+            {% else %}
+            <input type="checkbox" id="checkbox-mac" name="platform-checkbox[]" value="mac">
+            <label for="checkbox-mac">MacOS</label>
+            {% endif %}
+            {% if 'linux' in request.session.selected_platforms %}
+            <input type="checkbox" id="checkbox-linux-checked" name="platform-checkbox[]" value="linux" checked>
+            <label for="checkbox-linux-checked">Linux</label>
+            {% else %}
+            <input type="checkbox" id="checkbox-linux" name="platform-checkbox[]" value="linux">
+            <label for="checkbox-linux">Linux</label>
+            {% endif %}
+            <br>
             <button type="submit" name="action" value="filter_store">Filter</button>
             <button type="submit" name="action" value="clear_filter_store">Clear</button>
         </form>
+        <strong>Publishers:</strong><br>
+        {% for publisher in publishers %}
+            {{ publisher.publisher }} ({{ publisher.game_count }})
+        {% endfor %}
+        <a href="{% url 'publishers_url' %}">See all publishers</a>
         <hr>
     </div>
     <div id="games">

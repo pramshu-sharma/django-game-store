@@ -1,59 +1,136 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Home</title>
-<style>
-    .hidden {
-        display: none;
-    }
-</style>
-<script>
-    document.addEventListener("DOMContentLoaded", function(){
-        const showAllButton = document.getElementById('show-all');
-        const hiddenGenres = document.querySelectorAll('#genres-list .hidden');
-    
-        showAllButton.addEventListener('click', function(){
-            hiddenGenres.forEach(genre => {
-                genre.classList.remove('hidden');
-            });
-            showAllButton.style.display = 'none';
-        });
-    });
-</script>
-</head>
-<body>
-{% if selected_platforms %}
-    {{ selected_platforms }}
-{% endif %}
-<form action="{% url 'test_url' %}" method="post">
-    {% csrf_token %}
-    <input type="checkbox" id="checkbox-windows" name="platform-checkbox" value="windows">
-    <label for="checkbox-windows">Windows</label>
-    <input type="checkbox" id="checkbox-mac" name="platform-checkbox" value="mac">
-    <label for="checkbox-mac">Mac</label>
-    <input type="checkbox" id="checkbox-linux" name="platform-checkbox" value="linux">
-    <label for="checkbox-mac">Linux</label>
+{% extends 'base.html' %}
+{% block title %}Test{% endblock %}
+{% block body %}
+    <h1>TEST TEMPLATE</h1>
+    <div id="logout">
+        <h4><a href="{% url 'profile_url'%}">{{ user }}</a></h4>
+        <form action="{% url 'profile_url' %}" method="post">
+            {% csrf_token %}
+            <button type="submit" name="action" value="logout">Logout</button>
+        </form>
+        <hr>
+    </div>
+    <div id="filters">
+        <form action='{% url "test_url" %}' method="post">
+            {% csrf_token %}
+            <strong>Price:</strong><br>
+            <label for="min_price">Min Price: </label>
+            <input type="number" step='any' id="min_price" name="min_price_field" placeholder="{{request.session.selected_prices.0}}">
+            <label for="max_price">Max Price: </label>
+            <input type="number" step='any' id="max_price" name="max_price_field" placeholder="{{request.session.selected_prices.1}}">
+            <br>
+            <strong>Genres:</strong><br>
+            {% for genre in genres %}
+            {% if genre in request.session.selected_genres %}
+            <input type="checkbox" id="genre-checkbox-checked-{{ forloop.counter }}" name="genre-checkbox" value="{{genre}}" checked>
+            <label for="genre-checkbox-{{ forloop.counter }}">{{genre}}</label>
+            {% else %}
+            <input type="checkbox" id="genre-checkbox-{{ forloop.counter }}" name="genre-checkbox" value="{{genre}}">
+            <label for="genre-checkbox-{{ forloop.counter }}">{{genre}}</label>
+            {% endif %}
+            {% endfor %}
+            <br>
+            <strong>Platforms:</strong><br>
+            {% if 'windows' in request.session.selected_platforms %}
+            <input type="checkbox" id="checkbox-windows-checked" name="platform-checkbox[]" value="windows" checked>
+            <label for="checkbox-windows-checked">Windows</label>
+            {% else %}
+            <input type="checkbox" id="checkbox-windows" name="platform-checkbox[]" value="windows">
+            <label for="checkbox-windows">Windows</label>
+            {% endif %}
+            {% if 'mac' in request.session.selected_platforms %}
+            <input type="checkbox" id="checkbox-mac-checked" name="platform-checkbox[]" value="mac" checked>
+            <label for="checkbox-mac-checked">MacOS</label>
+            {% else %}
+            <input type="checkbox" id="checkbox-mac" name="platform-checkbox[]" value="mac">
+            <label for="checkbox-mac">MacOS</label>
+            {% endif %}
+            {% if 'linux' in request.session.selected_platforms %}
+            <input type="checkbox" id="checkbox-linux-checked" name="platform-checkbox[]" value="linux" checked>
+            <label for="checkbox-linux-checked">Linux</label>
+            {% else %}
+            <input type="checkbox" id="checkbox-linux" name="platform-checkbox[]" value="linux">
+            <label for="checkbox-linux">Linux</label>
+            {% endif %}
+            <br>
+            <button type="submit" name="action" value="filter_store">Filter</button>
+            <button type="submit" name="action" value="clear_filter_store">Clear</button>
+        </form>
+        <strong>Publishers:</strong><br>
+        {% for publisher in publishers %}
+            {{ publisher.publisher }} ({{ publisher.game_count }})
+        {% endfor %}
+        <a href="{% url 'publishers_url' %}">See all publishers</a>
+        <hr>
+    </div>
+    <div id="games">
+        <table class="table" border="1">
+            <tr>
+                <th>Name</th>
+                <th>Cover Image</th>
+                <th>Price</th>
+                <th>Genre(s)</th>
+                <th>Platform(s)</th>
+                <th>Actions</th>
+            </tr>
+            {% for game in page_obj %}
+            <tr>
+                <td><a href="{% url 'game_url' game.app_id %}">{{ game.name }}</a></td>
+                <td><img src="{{ game.image_main }}" width="230" height="107"></td>
+                {% if game.price == 0 %}
+                <td>Free to Play</td>
+                {% elif game.sale_price %}
+                <td>${{ game.sale_price }}<br><s>${{ game.price }}</s></td>
+                {% else %}
+                <td>${{ game.price }}</td>
+                {% endif %}
+                <td>{{ game.genres_all }}</td>
+                <td>
+                    {% if game.windows %}
+                    Windows<br>
+                    {% endif %}
+                    {% if game.mac %}
+                    MacOS<br>
+                    {% endif %}
+                    {% if game.linux %}
+                    Linux
+                    {% endif %}
+                </td>
+                <td>
+                    <form action="#" method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="app_id" value="{{ game.app_id }}">
+                        {% if game.price != 0 %}
+                            {% if game.app_id in games_in_cart %}
+                                <p><button type="submit" name="action" value="add_to_cart" disabled>Add to Cart</button></p>
+                            {% else %}
+                                <p><button type="submit" name="action" value="add_to_cart">Add to Cart</button></p>
+                            {% endif %}
+                            {% if game.app_id in wishlisted_games %}
+                                <p><button type="submit" name="action" value="remove_from_wishlist">Remove From Wishlist</button></p>
+                            {% else %}
+                                <p><button type="submit" name="action" value="add_to_wishlist">Add to Wishlist</button></p>
+                            {% endif %}
+                        {% else %}
+                            <p><button type="submit" name="action" value="get_game">Get</button></p>
+                        {% endif %}
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
     <br>
-    <button type="submit" name="action" value="filter_platform">Filter Platforms</button>
-</form>
-<table border="1">
-    <tr>
-        <th>Game</th>
-        <th>Windows</th>
-        <th>Mac</th>
-        <th>Linux</th>
-    </tr>
-    {% for game in games_and_platforms %}
-    <tr>
-    <td><img src="{{ game.image_main }}" width="230" height="107"></td>
-    <td>{{ game.windows }}</td>
-    <td>{{ game.mac }}</td>
-    <td>{{ game.linux }}</td>
-    </tr>
-    {% endfor %}
-</table>
-
-</body>
-</html>
-
+    <div id="pagination">
+        {% if page_obj.has_previous %}
+        <a class="page-link" href="?page=1">&laquo; first</a>
+           <a class="page-link" href="?page={{ page_obj.previous_page_number }}">previous</a>
+        {% endif %}
+        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+        {% if page_obj.has_next %}
+            <a class="page-link" href="?page={{ page_obj.next_page_number }}">next</a>
+            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">last &raquo;</a>
+        {% endif %}
+    </div>
+<h1>TEST TEMPLATE</h1>
+{% endblock %}

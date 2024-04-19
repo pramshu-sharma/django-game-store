@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% block title %}Publishers{% endblock %}
+{% block body %}
+
+{% regroup publishers by publisher_first_letter as publisher_group %}
+{% for group in publisher_group %}
+    <h2>{{ group.grouper }}</h2><br>
+    {% for game_publisher in group.list %}
+        {{ game_publisher }} |
+{% endfor %}
+{% endfor %}
+{% endblock %}
