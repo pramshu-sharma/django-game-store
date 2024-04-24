@@ -1,4 +1,17 @@
 {% extends 'base.html' %}
+{% block head %} 
+<style>
+    button.publisher_filter{
+        appearance: none;
+        border: none;
+        background: none;
+        padding: 0;
+        margin: 0;
+        font: inherit;
+        cursor: pointer;
+    }
+</style>
+{% endblock %}
 {% block title %}Store{% endblock %}
 {% block body %}
     <div id="logout">
@@ -53,13 +66,28 @@
             {% endif %}
             <br>
             <button type="submit" name="action" value="filter_store">Filter</button>
-            <button type="submit" name="action" value="clear_filter_store">Clear</button>
+            <button type="submit" name="action" value="clear_filter_store">Clear Filters</button>
         </form>
-        <strong>Publishers:</strong><br>
+        <br>
+        
+        {% if 'selected_publisher' in request.session %}
+            <strong>Selected Publisher: {{ publishers.publisher }} </strong> 
+            <form action='{% url "store_url" %}' method='post'>
+                {% csrf_token %}
+                <button type='submit' name='action' value='clear_filter_publisher'>Clear Publisher</button>
+            </form>
+        {% else %}
+        <strong>Publishers (Games):</strong>
         {% for publisher in publishers %}
-            {{ publisher.publisher }} ({{ publisher.game_count }})
+        <form action='{% url "store_url" %}' method='post'> 
+        {% csrf_token %}
+        <input type='hidden' value='{{publisher.id}}' name='selected_publisher'>
+        <button class='publisher_filter' type='submit' name='action' value='filter_publisher'>{{ publisher.publisher }} ({{publisher.game_count}})</button>
+        </form> 
         {% endfor %}
-        <a href="{% url 'publishers_url' %}">See all publishers</a>
+        <a href='{% url "publishers_url" %}'>See all publishers</a>
+        {% endif %}
+        <br>
         <hr>
     </div>
     <div id="games">
@@ -101,7 +129,7 @@
                         <input type="hidden" name="app_id" value="{{ game.app_id }}">
                         {% if game.price != 0 %}
                             {% if game.app_id in games_in_cart %}
-                                <p><button type="submit" name="action" value="add_to_cart" disabled>Add to Cart</button></p>
+                                <p><button type="submit" name="action" value="remove_from_cart">Remove From Cart</button></p>
                             {% else %}
                                 <p><button type="submit" name="action" value="add_to_cart">Add to Cart</button></p>
                             {% endif %}

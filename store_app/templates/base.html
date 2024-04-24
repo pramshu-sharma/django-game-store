@@ -2,10 +2,11 @@
 {% load static %}
 <html lang="en">
 <head>
+    {% block head %} {% endblock %}
     <meta charset="UTF-8">
     <title>{% block title %} {% endblock %}</title>
-<!--    <link href="{% static 'css/bootstrap.css' %}" rel="stylesheet">-->
-<!--    <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>-->
+{% comment %} <link href="{% static 'css/bootstrap.css' %}" rel="stylesheet">
+<script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>  {% endcomment %}
 </head>
 <body>
 {% block body %}

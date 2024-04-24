@@ -7,8 +7,7 @@ from django.core.paginator import Paginator
 from django.db.models.functions import Concat, Substr, Upper
 from django.db.models import Q, F, Sum, Case, When, Value, FloatField, CharField, Count
 from django.http import HttpResponse,HttpResponseRedirect
-from django.shortcuts import get_object_or_404
-from django.shortcuts import render, redirect
+from django.shortcuts import get_object_or_404, render, redirect
 from django.urls import get_resolver, reverse
 
 from .forms import RegistrationForm, LoginForm
@@ -108,7 +107,7 @@ def game_view(request, app_id):
     return render(request, 'store_app/game.html', context)
 
 @login_required(login_url='login_url')
-def store_view(request):
+def store_view(request): # publisher filter works, might need refactoring for both code and logic
     if request.method == 'POST':
         action = request.POST.get('action')
 
@@ -120,15 +119,21 @@ def store_view(request):
             request.session['selected_genres'] = request.POST.getlist('genre-checkbox')
             request.session['selected_platforms'] = request.POST.getlist('platform-checkbox[]')
 
+            request.session['min_price'], request.session['max_price'] = '', ''
             previous_min_price, previous_max_price = '', ''
-            request_min_price, request_max_price = request.POST.get('min_price_field'), request.POST.get('max_price_field')
+            request_min_price, request_max_price = request.POST.get('min_price_field'), request.POST.get(
+                'max_price_field')
 
-            if (request_min_price != '' and request_min_price != previous_min_price) and (request_max_price != '' and request_max_price != previous_max_price):
+            if (request_min_price != '' and request_min_price != previous_min_price) and (
+                    request_max_price != '' and request_max_price != previous_max_price):
                 request.session['selected_prices'] = (request_min_price, request_max_price)
 
             previous_min_price, previous_max_price = request.session['min_price'], request.session['max_price']
 
             return HttpResponseRedirect(reverse('store_url'))
+
+        if action == 'filter_publisher':
+            request.session['selected_publisher'] = request.POST['selected_publisher']
 
         if action == 'clear_filter_store':
             keys_to_flush = ['selected_genres', 'selected_platforms', 'selected_prices']
@@ -137,7 +142,10 @@ def store_view(request):
                 if key in keys_to_flush:
                     del request.session[key]
 
-            return HttpResponseRedirect(reverse('test_url'))
+            return HttpResponseRedirect(reverse('store_url'))
+
+        if action == 'clear_filter_publisher':
+            del request.session['selected_publisher']
 
         if action == 'add_to_cart':
             user_id = request.user.id
@@ -145,6 +153,13 @@ def store_view(request):
 
             add_to_cart_game = Cart(game_id=game_id, user_id=user_id)
             add_to_cart_game.save()
+
+        if action == 'remove_from_cart':
+            user_id = request.user.id
+            game_id = request.POST.get('app_id')
+
+            remove_from_cart_game = Cart.objects.filter(game_id=game_id, user_id=user_id)
+            remove_from_cart_game.delete()
 
         if action == 'add_to_wishlist':
             user_id = request.user.id
@@ -169,13 +184,17 @@ def store_view(request):
     ).order_by(
         '-peak_player_count')
 
+    publishers = Publisher.objects.annotate(
+        game_count=Count('publishergame__game')
+    ).values('id', 'publisher', 'game_count').order_by('-game_count')[:5]
+
+
     if 'selected_prices' in request.session and request.session['selected_prices'] is not None:
         min_price, max_price = request.session['selected_prices'][0], request.session['selected_prices'][1]
 
         if min_price and max_price:
             min_price, max_price = float(min_price), float(max_price)
             store_games = store_games.filter(price__gte=min_price, price__lte=max_price).order_by('-price')
-
 
     if 'selected_genres' in request.session and request.session['selected_genres'] is not None:
         query_genre = Q()
@@ -193,15 +212,19 @@ def store_view(request):
 
         store_games = store_games.filter(query_platform)
 
+    if 'selected_publisher' in request.session and request.session['selected_publisher'] is not None:
+        selected_publisher_id = request.session['selected_publisher']
+
+        store_games = store_games.filter(publishergame__publisher=selected_publisher_id)
+        publishers = Publisher.objects.get(id=selected_publisher_id)
+
 
     wishlisted_games = Wishlist.objects.filter(user_id=request.user).values_list('game_id', flat=True)
     games_in_cart = Cart.objects.filter(user_id=request.user).values_list('game_id', flat=True)
     genres = Genre.objects.values_list('genre', flat=True)
-    publishers = Publisher.objects.annotate(
-        game_count=Count('publishergame__game')
-    ).values('publisher', 'game_count').order_by('-game_count')[:10]
 
-    paginator = Paginator(store_games, 5)
+
+    paginator = Paginator(store_games, 10)
 
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
@@ -214,6 +237,7 @@ def store_view(request):
         'user': request.user,
         'publishers': publishers
     }
+
     return render(request, 'store_app/store.html', context)
 
 @login_required(login_url='login_url')
@@ -305,10 +329,142 @@ def publishers_view(request):
                     output_field=CharField()
         )
     ).order_by('publisher_first_letter')
+    print(publishers.query)
 
-
+    publishers = publishers.annotate(game_count=Count('publishergame__game'))
+    print(publishers.query)
     context = {'publishers': publishers}
     return render(request, 'store_app/publishers.html', context)
 
 def test_view(request):
-    pass
+    if request.method == 'POST':
+        action = request.POST.get('action')
+
+        if action == 'logout':
+            logout(request)
+            return redirect('login_url')
+
+        if action == 'filter_store':
+            request.session['selected_genres'] = request.POST.getlist('genre-checkbox')
+            request.session['selected_platforms'] = request.POST.getlist('platform-checkbox[]')
+
+            request.session['min_price'], request.session['max_price'] = '', ''
+            previous_min_price, previous_max_price = '', ''
+            request_min_price, request_max_price = request.POST.get('min_price_field'), request.POST.get(
+                'max_price_field')
+
+            if (request_min_price != '' and request_min_price != previous_min_price) and (
+                    request_max_price != '' and request_max_price != previous_max_price):
+                request.session['selected_prices'] = (request_min_price, request_max_price)
+
+            previous_min_price, previous_max_price = request.session['min_price'], request.session['max_price']
+
+            return HttpResponseRedirect(reverse('test_url'))
+
+        if action == 'filter_publisher':
+            request.session['selected_publisher'] = request.POST['selected_publisher']
+
+        if action == 'clear_filter_store':
+            keys_to_flush = ['selected_genres', 'selected_platforms', 'selected_prices']
+
+            for key in list(request.session.keys()):
+                if key in keys_to_flush:
+                    del request.session[key]
+
+            return HttpResponseRedirect(reverse('test_url'))
+
+        if action == 'clear_filter_publisher':
+            del request.session['selected_publisher']
+
+        if action == 'add_to_cart':
+            user_id = request.user.id
+            game_id = request.POST.get('app_id')
+
+            add_to_cart_game = Cart(game_id=game_id, user_id=user_id)
+            add_to_cart_game.save()
+
+        if action == 'remove_from_cart':
+            user_id = request.user.id
+            game_id = request.POST.get('app_id')
+
+            remove_from_cart_game = Cart.objects.filter(game_id=game_id, user_id=user_id)
+            remove_from_cart_game.delete()
+
+        if action == 'add_to_wishlist':
+            user_id = request.user.id
+            game_id = request.POST.get('app_id')
+
+            wishlist_game = Wishlist(game_id=game_id, user_id=user_id)
+            wishlist_game.save()
+
+        if action == 'remove_from_wishlist':
+            user_id = request.user.id
+            game_id = request.POST.get('app_id')
+
+            remove_game_from_wishlist = Wishlist.objects.filter(game_id=game_id, user_id=user_id)
+            remove_game_from_wishlist.delete()
+
+    store_games = Games.objects.values(
+        'app_id', 'name', 'price', 'sale_price', 'image_main', 'windows', 'mac', 'linux').annotate(
+        genres_all=StringAgg(
+            F('genregame__genre__genre'),
+            delimiter=', '
+        )
+    ).order_by(
+        '-peak_player_count')
+
+    publishers = Publisher.objects.annotate(
+        game_count=Count('publishergame__game')
+    ).values('id', 'publisher', 'game_count').order_by('-game_count')[:5]
+
+
+    if 'selected_prices' in request.session and request.session['selected_prices'] is not None:
+        min_price, max_price = request.session['selected_prices'][0], request.session['selected_prices'][1]
+
+        if min_price and max_price:
+            min_price, max_price = float(min_price), float(max_price)
+            store_games = store_games.filter(price__gte=min_price, price__lte=max_price).order_by('-price')
+
+    if 'selected_genres' in request.session and request.session['selected_genres'] is not None:
+        query_genre = Q()
+        for genre in request.session['selected_genres']:
+            q_object = Q(**{'genres_all__icontains': genre})
+            query_genre &= q_object
+
+        store_games = store_games.filter(query_genre)
+
+    if 'selected_platforms' in request.session and request.session['selected_platforms'] is not None:
+        query_platform = Q()
+        for platform in request.session['selected_platforms']:
+            q_object = Q(**{platform: 1})
+            query_platform &= q_object
+
+        store_games = store_games.filter(query_platform)
+
+    if 'selected_publisher' in request.session and request.session['selected_publisher'] is not None:
+        selected_publisher_id = request.session['selected_publisher']
+
+        store_games = store_games.filter(publishergame__publisher=selected_publisher_id)
+        publishers = Publisher.objects.get(id=selected_publisher_id)
+
+
+    wishlisted_games = Wishlist.objects.filter(user_id=request.user).values_list('game_id', flat=True)
+    games_in_cart = Cart.objects.filter(user_id=request.user).values_list('game_id', flat=True)
+    genres = Genre.objects.values_list('genre', flat=True)
+
+
+    paginator = Paginator(store_games, 10)
+
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    context = {
+        'page_obj': page_obj,
+        'genres': genres,
+        'wishlisted_games': wishlisted_games,
+        'games_in_cart': games_in_cart,
+        'user': request.user,
+        'publishers': publishers
+    }
+
+    return render(request, 'store_app/test.html', context)
