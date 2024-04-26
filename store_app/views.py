@@ -4,7 +4,7 @@ from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.postgres.aggregates import StringAgg
 from django.core.paginator import Paginator
-from django.db.models.functions import Concat, Substr, Upper
+from django.db.models.functions import Concat, Substr, Upper, Lower # remove Lower used in test only
 from django.db.models import Q, F, Sum, Case, When, Value, FloatField, CharField, Count
 from django.http import HttpResponse,HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render, redirect
@@ -107,7 +107,13 @@ def game_view(request, app_id):
     return render(request, 'store_app/game.html', context)
 
 @login_required(login_url='login_url')
-def store_view(request): # publisher filter works, might need refactoring for both code and logic
+def store_view(request):
+    if 'publisher' in request.GET:
+        if request.GET['publisher'] == 'all':
+            del request.session['selected_publisher']
+        else:
+            request.session['selected_publisher'] = request.GET['publisher']
+
     if request.method == 'POST':
         action = request.POST.get('action')
 
@@ -130,10 +136,7 @@ def store_view(request): # publisher filter works, might need refactoring for bo
 
             previous_min_price, previous_max_price = request.session['min_price'], request.session['max_price']
 
-            return HttpResponseRedirect(reverse('store_url'))
-
-        if action == 'filter_publisher':
-            request.session['selected_publisher'] = request.POST['selected_publisher']
+            return HttpResponseRedirect(reverse('test_url'))
 
         if action == 'clear_filter_store':
             keys_to_flush = ['selected_genres', 'selected_platforms', 'selected_prices']
@@ -143,9 +146,6 @@ def store_view(request): # publisher filter works, might need refactoring for bo
                     del request.session[key]
 
             return HttpResponseRedirect(reverse('store_url'))
-
-        if action == 'clear_filter_publisher':
-            del request.session['selected_publisher']
 
         if action == 'add_to_cart':
             user_id = request.user.id
@@ -188,7 +188,6 @@ def store_view(request): # publisher filter works, might need refactoring for bo
         game_count=Count('publishergame__game')
     ).values('id', 'publisher', 'game_count').order_by('-game_count')[:5]
 
-
     if 'selected_prices' in request.session and request.session['selected_prices'] is not None:
         min_price, max_price = request.session['selected_prices'][0], request.session['selected_prices'][1]
 
@@ -213,16 +212,13 @@ def store_view(request): # publisher filter works, might need refactoring for bo
         store_games = store_games.filter(query_platform)
 
     if 'selected_publisher' in request.session and request.session['selected_publisher'] is not None:
-        selected_publisher_id = request.session['selected_publisher']
+        selected_publisher = request.session['selected_publisher']
 
-        store_games = store_games.filter(publishergame__publisher=selected_publisher_id)
-        publishers = Publisher.objects.get(id=selected_publisher_id)
-
+        store_games = store_games.filter(publishergame__publisher__publisher=selected_publisher)
 
     wishlisted_games = Wishlist.objects.filter(user_id=request.user).values_list('game_id', flat=True)
     games_in_cart = Cart.objects.filter(user_id=request.user).values_list('game_id', flat=True)
     genres = Genre.objects.values_list('genre', flat=True)
-
 
     paginator = Paginator(store_games, 10)
 
@@ -235,7 +231,7 @@ def store_view(request): # publisher filter works, might need refactoring for bo
         'wishlisted_games': wishlisted_games,
         'games_in_cart': games_in_cart,
         'user': request.user,
-        'publishers': publishers
+        'publishers': publishers,
     }
 
     return render(request, 'store_app/store.html', context)
@@ -329,12 +325,11 @@ def publishers_view(request):
                     output_field=CharField()
         )
     ).order_by('publisher_first_letter')
-    print(publishers.query)
 
-    publishers = publishers.annotate(game_count=Count('publishergame__game'))
-    print(publishers.query)
+    publishers = publishers.annotate(game_count=Count('publishergame__game')).order_by('publisher')
+
     context = {'publishers': publishers}
     return render(request, 'store_app/publishers.html', context)
 
 def test_view(request):
-    raise NotImplementedError('No test logic active.')
+    raise NotImplementedError('No Test Logic Active')

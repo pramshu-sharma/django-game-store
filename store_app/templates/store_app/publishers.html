@@ -1,16 +1,5 @@
 {% extends 'base.html' %}
 {% block head %} 
-<style>
-    button.publisher_filter{
-        appearance: none;
-        border: none;
-        background: none;
-        padding: 0;
-        margin: 0;
-        font: inherit;
-        cursor: pointer;
-    }
-</style>
 {% endblock %}
 {% block title %}Publishers{% endblock %}
 {% block body %}
@@ -19,11 +8,8 @@
 {% for group in publisher_group %}
     <h2>{{ group.grouper }}</h2><br>
     {% for game_publisher in group.list %}
-        <form action='{% url "test_url" %}' method='post'>
-         {% csrf_token %}
-            <input type='hidden' value='{{game_publisher.id}}' name='selected_publisher'>
-            <button class='publisher_filter' type='submit' name='action' value='filter_publisher'>{{ game_publisher.publisher }} ({{ game_publisher.game_count }})</button>
-        </form>
+    <a href='{% url "test_url" %}?publisher={{ game_publisher.publisher }}'>{{ game_publisher.publisher }} </a>({{ game_publisher.game_count }})
+
 {% endfor %}
 {% endfor %}
 {% endblock %}

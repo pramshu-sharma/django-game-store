@@ -1,16 +1,5 @@
 {% extends 'base.html' %}
 {% block head %} 
-<style>
-    button.publisher_filter{
-        appearance: none;
-        border: none;
-        background: none;
-        padding: 0;
-        margin: 0;
-        font: inherit;
-        cursor: pointer;
-    }
-</style>
 {% endblock %}
 {% block title %}Store{% endblock %}
 {% block body %}
@@ -69,25 +58,16 @@
             <button type="submit" name="action" value="clear_filter_store">Clear Filters</button>
         </form>
         <br>
-        
         {% if 'selected_publisher' in request.session %}
-            <strong>Selected Publisher: {{ publishers.publisher }} </strong> 
-            <form action='{% url "store_url" %}' method='post'>
-                {% csrf_token %}
-                <button type='submit' name='action' value='clear_filter_publisher'>Clear Publisher</button>
-            </form>
+        <strong>Viewing games by: </strong>{{ request.session.selected_publisher }} <a href='{% url "store_url" %}?publisher=all'>Clear</a><br>
+        <a href='{% url "publishers_url" %}'>See all publishers</a>
         {% else %}
         <strong>Publishers (Games):</strong>
         {% for publisher in publishers %}
-        <form action='{% url "store_url" %}' method='post'> 
-        {% csrf_token %}
-        <input type='hidden' value='{{publisher.id}}' name='selected_publisher'>
-        <button class='publisher_filter' type='submit' name='action' value='filter_publisher'>{{ publisher.publisher }} ({{publisher.game_count}})</button>
-        </form> 
+        <a href='{% url "store_url" %}?publisher={{ publisher.publisher }}'>{{ publisher.publisher }}</a> ({{publisher.game_count}})
         {% endfor %}
         <a href='{% url "publishers_url" %}'>See all publishers</a>
         {% endif %}
-        <br>
         <hr>
     </div>
     <div id="games">
