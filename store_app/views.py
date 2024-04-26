@@ -16,7 +16,7 @@ from .models import Games, CustomUser, Wishlist, Cart, PublisherGame, Publisher,
 import datetime
 import os
 import random
-# github pull reuqest test
+
 """
 need master template for all pages
 pages to add: about, contact, checkout
