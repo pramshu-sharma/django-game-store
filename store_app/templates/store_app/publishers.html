@@ -8,7 +8,7 @@
 {% for group in publisher_group %}
     <h2>{{ group.grouper }}</h2><br>
     {% for game_publisher in group.list %}
-    <a href='{% url "test_url" %}?publisher={{ game_publisher.publisher }}'>{{ game_publisher.publisher }} </a>({{ game_publisher.game_count }})
+    <a href='{% url "store_url" %}?publisher={{ game_publisher.publisher }}'>{{ game_publisher.publisher }} </a>({{ game_publisher.game_count }})
 
 {% endfor %}
 {% endfor %}

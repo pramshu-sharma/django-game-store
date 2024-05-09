@@ -4,7 +4,7 @@ from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.postgres.aggregates import StringAgg
 from django.core.paginator import Paginator
-from django.db.models.functions import Concat, Substr, Upper, Lower # remove Lower used in test only
+from django.db.models.functions import Concat, Substr, Upper
 from django.db.models import Q, F, Sum, Case, When, Value, FloatField, CharField, Count
 from django.http import HttpResponse,HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render, redirect
@@ -17,11 +17,13 @@ import datetime
 import os
 import random
 
-"""
-need master template for all pages
-pages to add: about, contact, checkout
-"""
 
+def flush_store_filter_session_variables(request):
+    keys = ['selected_genres', 'selected_platforms', 'selected_prices', 'selected_publisher']
+
+    for key in keys:
+        if key in request.session:
+            del request.session[key]
 def login_view(request): # needs to check incorrect username and password
     if request.user.is_authenticated:
         return redirect('store_url')
@@ -44,8 +46,9 @@ def login_view(request): # needs to check incorrect username and password
             else:
                 messages.error(request, 'Unable to login.')
 
-    form = LoginForm()
-    context = {'form': form}
+    context = {
+        'form': LoginForm()
+    }
     return render(request, 'store_app/login.html', context)
 
 def registration_view(request):
@@ -84,26 +87,29 @@ def registration_view(request):
                     messages.error(request, f'{field}: {error}')
             return redirect('registration_url')
 
-
-    registration_form = RegistrationForm()
-    context = {'form': registration_form}
+    context = {
+        'form': RegistrationForm()
+    }
     return render(request, 'store_app/register.html', context)
     
 @login_required(login_url='login_url')
 def game_view(request, app_id):
+    '''
+    add reviews for game (not steam)
+    '''
+    flush_store_filter_session_variables(request)
 
     game = get_object_or_404(Games, app_id=app_id)
-    print(game.sale_price)
-    categories = game.category.split(',')
-    if game.video:
-        if ',' in  game.video:
-            video = game.video.split(',')[0]
-        else:
-            video = game.video
-    else:
-        video = ''
 
-    context = {'game': game, 'categories': categories, 'video': video}
+    video = None
+    if game.video:
+        video = game.video.split(',')[0] if ',' in  game.video else game.video
+
+    context = {
+        'game': game,
+        'categories': game.category.split(','),
+        'video': video
+    }
     return render(request, 'store_app/game.html', context)
 
 @login_required(login_url='login_url')
@@ -136,7 +142,7 @@ def store_view(request):
 
             previous_min_price, previous_max_price = request.session['min_price'], request.session['max_price']
 
-            return HttpResponseRedirect(reverse('test_url'))
+            return HttpResponseRedirect(reverse('store_url'))
 
         if action == 'clear_filter_store':
             keys_to_flush = ['selected_genres', 'selected_platforms', 'selected_prices']
@@ -193,7 +199,7 @@ def store_view(request):
 
         if min_price and max_price:
             min_price, max_price = float(min_price), float(max_price)
-            store_games = store_games.filter(price__gte=min_price, price__lte=max_price).order_by('-price')
+            store_games = store_games.filter(price__gte=min_price, price__lte=max_price).order_by('name')
 
     if 'selected_genres' in request.session and request.session['selected_genres'] is not None:
         query_genre = Q()
@@ -209,12 +215,12 @@ def store_view(request):
             q_object = Q(**{platform: 1})
             query_platform &= q_object
 
-        store_games = store_games.filter(query_platform)
+        store_games = store_games.filter(query_platform).order_by('name')
 
     if 'selected_publisher' in request.session and request.session['selected_publisher'] is not None:
         selected_publisher = request.session['selected_publisher']
 
-        store_games = store_games.filter(publishergame__publisher__publisher=selected_publisher)
+        store_games = store_games.filter(publishergame__publisher__publisher=selected_publisher).order_by('name')
 
     wishlisted_games = Wishlist.objects.filter(user_id=request.user).values_list('game_id', flat=True)
     games_in_cart = Cart.objects.filter(user_id=request.user).values_list('game_id', flat=True)
@@ -238,24 +244,18 @@ def store_view(request):
 
 @login_required(login_url='login_url')
 def profile_view(request):
-    """
-    Edit profile attributes
-    """
+    flush_store_filter_session_variables(request)
+
     if request.method == 'POST':
         logout(request)
         return redirect('login_url')
 
-    profile = get_object_or_404(CustomUser, username=request.user)
-
-    total_games_in_cart = Cart.objects.filter(user_id=request.user).count()
-
     wishlisted_games_ids = Wishlist.objects.filter(user_id=request.user).values_list('game_id', flat=True)
-    wishlisted_games = Games.objects.filter(app_id__in=wishlisted_games_ids)
 
     context = {
-                'profile': profile,
-                'wishlisted_games': wishlisted_games,
-                'total_games_in_cart': total_games_in_cart
+                'profile': get_object_or_404(CustomUser, username=request.user),
+                'wishlisted_games': Games.objects.filter(app_id__in=wishlisted_games_ids),
+                'total_games_in_cart': Cart.objects.filter(user_id=request.user).count()
     }
     return render(request, 'store_app/profile.html', context)
 
@@ -328,7 +328,9 @@ def publishers_view(request):
 
     publishers = publishers.annotate(game_count=Count('publishergame__game')).order_by('publisher')
 
-    context = {'publishers': publishers}
+    context = {
+        'publishers': publishers
+    }
     return render(request, 'store_app/publishers.html', context)
 
 def test_view(request):

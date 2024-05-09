@@ -11,5 +11,5 @@ urlpatterns = [
     path('profile/', views.profile_view, name='profile_url'),
     path('publishers/', views.publishers_view, name='publishers_url'),
     path('cart/', views.cart_view, name='cart_url'),
-    path('test/', views.test_view, name='test_url')
+    path('test/', views.test_view, name='test_url'),
 ]
