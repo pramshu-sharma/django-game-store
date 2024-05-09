@@ -95,6 +95,10 @@ def registration_view(request):
 @login_required(login_url='login_url')
 def game_view(request, app_id):
     flush_store_filter_session_variables(request)
+    ''''
+    add edit reviews
+    show all reviews and user review
+    '''
 
     if request.method == 'POST':
         action = request.POST['action']
