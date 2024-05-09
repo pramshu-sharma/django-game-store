@@ -141,3 +141,15 @@ class GenreGame(models.Model):
 
     class Meta:
         unique_together = ('genre', 'game')
+
+
+class Reviews(models.Model):
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, to_field='username')
+    game = models.ForeignKey(Games, on_delete=models.CASCADE)
+    review = models.TextField()
+    create_ts = models.DateTimeField(auto_now_add=True)
+    update_ts = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('user', 'game')
+

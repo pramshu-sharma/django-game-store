@@ -11,7 +11,7 @@ from django.shortcuts import get_object_or_404, render, redirect
 from django.urls import get_resolver, reverse
 
 from .forms import RegistrationForm, LoginForm
-from .models import Games, CustomUser, Wishlist, Cart, PublisherGame, Publisher, SalePublisher, Genre, GenreGame
+from .models import Games, CustomUser, Wishlist, Cart, PublisherGame, Publisher, SalePublisher, Genre, GenreGame, Reviews
 
 import datetime
 import os
@@ -94,13 +94,27 @@ def registration_view(request):
     
 @login_required(login_url='login_url')
 def game_view(request, app_id):
-    '''
-    add reviews for game (not steam)
-    '''
     flush_store_filter_session_variables(request)
 
-    game = get_object_or_404(Games, app_id=app_id)
+    if request.method == 'POST':
+        action = request.POST['action']
 
+        if action == 'post-review':
+            review = request.POST['review-textarea']
+
+            if len(review) >= 10001:
+                messages.error(request, 'Review length is too long.')
+                return redirect('game_url', app_id=app_id)
+
+            game = Games.objects.get(app_id=app_id)
+            user = request.user
+
+            review = Reviews(user=user, game=game, review=review)
+            review.save()
+            messages.success(request, 'Review saved successfully.')
+            return redirect('game_url', app_id=app_id)
+
+    game = get_object_or_404(Games, app_id=app_id)
     video = None
     if game.video:
         video = game.video.split(',')[0] if ',' in  game.video else game.video

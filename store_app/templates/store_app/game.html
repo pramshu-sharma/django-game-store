@@ -17,12 +17,21 @@
 <p><strong>Price:</strong>{% if game.sale_price %} [ON SALE] ${{ game.sale_price }} <s>${{ game.price }}</s>{% else %} ${{ game.price }}{% endif %}</p>
 <p><strong>Categories:</strong></p>
 {% if categories %}
-<ul>
-    {% for category in categories %}
-    <li>{{ category }}</li>
-    {% endfor %}
-</ul>
-{% endif %}
+<p>{% for category in categories %}{{ category }} {% endfor %}</p>
 
+{% endif %}
+{% if messages %}
+{% for message in messages %}
+    {{ message }}<br>
+{% endfor %}
+{% endif %}
+<br>
+Post a Review (10000 characters max):
+<form action='{% url "game_url" game.app_id %}' method='post'>
+{% csrf_token %}
+<textarea name='review-textarea' rows='4' cols='100'></textarea><br>
+<input type='hidden' name='game-id' value='{{ game.id }}'>
+<button type='submit' name='action' value='post-review'>Post Review</button>
+</form>
 </body>
 </html>
