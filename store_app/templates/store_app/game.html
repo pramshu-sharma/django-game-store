@@ -5,6 +5,7 @@
     <title>{{ game.name }}</title>
 </head>
 <body>
+<h3>Logged in as: {{ request.user }}</h3>
 <h1>{{ game.name }}</h1>
 <img src="{{ game.image_main }}">
 {% if video %}
@@ -25,13 +26,27 @@
     {{ message }}<br>
 {% endfor %}
 {% endif %}
-<br>
+<hr>
+
+{% if user_review %}
+<h3>Your Review:</h3>
+<h4>{{ user_review.review }} (Edit)</h4> Posted on: {{ user_review.create_ts }}
+{% else %}
 Post a Review (10000 characters max):
 <form action='{% url "game_url" game.app_id %}' method='post'>
 {% csrf_token %}
 <textarea name='review-textarea' rows='4' cols='100'></textarea><br>
-<input type='hidden' name='game-id' value='{{ game.id }}'>
 <button type='submit' name='action' value='post-review'>Post Review</button>
 </form>
+<hr>
+{% endif %}
+
+
+<hr>
+<h3>Reviews:</h3>
+{% for review in reviews %}
+    <h4>{{ review.review }}</h4><br>By: <strong>{{ review.user }}</strong> Posted on: {{ review.create_ts }}
+    <hr>
+{% endfor %}
 </body>
 </html>

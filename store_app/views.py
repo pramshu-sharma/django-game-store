@@ -1,21 +1,25 @@
+import datetime
+import os
+import random
+import json
+
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.postgres.aggregates import StringAgg
 from django.core.paginator import Paginator
-from django.db.models.functions import Concat, Substr, Upper
 from django.db.models import Q, F, Sum, Case, When, Value, FloatField, CharField, Count
-from django.http import HttpResponse,HttpResponseRedirect
+from django.db.models.functions import Concat, Substr, Upper
+from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, render, redirect
 from django.urls import get_resolver, reverse
 
 from .forms import RegistrationForm, LoginForm
-from .models import Games, CustomUser, Wishlist, Cart, PublisherGame, Publisher, SalePublisher, Genre, GenreGame, Reviews
-
-import datetime
-import os
-import random
+from .models import (
+    Games, CustomUser, Wishlist, Cart, PublisherGame, Publisher,
+    SalePublisher, Genre, GenreGame, Reviews, EditReviewTest
+)
 
 
 def flush_store_filter_session_variables(request):
@@ -95,10 +99,6 @@ def registration_view(request):
 @login_required(login_url='login_url')
 def game_view(request, app_id):
     flush_store_filter_session_variables(request)
-    ''''
-    add edit reviews
-    show all reviews and user review
-    '''
 
     if request.method == 'POST':
         action = request.POST['action']
@@ -123,8 +123,19 @@ def game_view(request, app_id):
     if game.video:
         video = game.video.split(',')[0] if ',' in  game.video else game.video
 
+    reviews = Reviews.objects.filter(game=game.id)
+    user_review = None
+
+    try:
+        user_review = get_object_or_404(Reviews, user=request.user)
+        reviews = reviews.exclude(user=request.user)
+    except Exception:
+        pass
+
     context = {
         'game': game,
+        'reviews': reviews,
+        'user_review': user_review,
         'categories': game.category.split(','),
         'video': video
     }
@@ -329,7 +340,7 @@ def index_view(request):
 
         return render(request, 'store_app/index.html', context)
     else:
-        return redirect('home_url')
+        return redirect('store_url')
 
 def publishers_view(request):
     numbered_first_letters = ['0', '1', '2', '3', '4' , '5', '6', '7', '8', '9']
@@ -352,4 +363,20 @@ def publishers_view(request):
     return render(request, 'store_app/publishers.html', context)
 
 def test_view(request):
-    raise NotImplementedError('No Test Logic Active')
+    # cannot edit review after JS POST request
+    if request.method == 'POST':
+        try:
+            post_review = json.loads(request.body.decode('utf-8'))
+            print(post_review)
+            new_review = get_object_or_404(EditReviewTest, id=post_review['id'])
+            new_review.review = post_review['review']
+            new_review.save()
+            return JsonResponse({'message': 'review posted'}, status=200)
+        except json.JSONDecodeError:
+            return  JsonResponse({'message': 'Something went wrong'}, status=400)
+
+    reviews = EditReviewTest.objects.all()
+    context = {
+        'reviews': reviews
+    }
+    return render(request, 'store_app/test.html', context)
