@@ -5,15 +5,14 @@ document.addEventListener('DOMContentLoaded', function() {
         editLink.addEventListener('click', function(event) {
             let dataReviewID = this.parentElement.getAttribute('data-review-id')
             let postURL = this.parentElement.getAttribute('data-post-url')
-            
+            let csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content')
             event.preventDefault()
-            editReview(dataReviewID, postURL)
+            editReview(dataReviewID, postURL, csrfToken)
         })
     }
 })
 
-function editReview(dataReviewID, postURL) {
-    console.log('{{ csrf_token }}')
+function editReview(dataReviewID, postURL, csrfToken) {
     let reviewSpan = document.getElementById('user-review')
     let reviewText = reviewSpan.textContent.replace('Edit', '')
     reviewSpan.innerHTML = ''
@@ -23,11 +22,10 @@ function editReview(dataReviewID, postURL) {
     editReviewTextArea.rows = 3
     editReviewTextArea.textContent = reviewText
 
-    let saveButton = document.createElement('button')
+    let saveButton = document.createElement('a')
     saveButton.id = 'save-user-review'
-    saveButton.name = 'action'
-    saveButton.value = 'save-user-review'
     saveButton.textContent = 'Save'
+    saveButton.href = '#'
 
     reviewSpan.appendChild(editReviewTextArea)
     reviewSpan.appendChild(saveButton)
@@ -40,7 +38,7 @@ function editReview(dataReviewID, postURL) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token }}'
+                'X-CSRFToken': csrfToken
             },
             body: JSON.stringify({'id': dataReviewID, 'review': newReview})
         })
@@ -58,10 +56,11 @@ function editReview(dataReviewID, postURL) {
 
         editButton.addEventListener('click', function(event) {
             event.preventDefault()
-            editReview(dataReviewID, postURL)
+            editReview(dataReviewID, postURL, csrfToken)
         })
 
         reviewSpan.textContent = newReview
         reviewSpan.appendChild(editButton)
     })
 }
+

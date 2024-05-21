@@ -97,17 +97,25 @@ def registration_view(request):
     return render(request, 'store_app/register.html', context)
     
 @login_required(login_url='login_url')
-def game_view(request, app_id):
-    # check csrf token in JS
+def game_view(request, app_id): # CSRF token in HTML's meta tag might not be a good idea!
+    # need to process JSONResponse in JS fetch
     flush_store_filter_session_variables(request)
 
     if request.method == 'POST':
-        action = request.POST['action']
+        if request.content_type == 'application/json':
+            edited_review = json.loads(request.body.decode('utf-8'))
 
-        if action == 'save-user-review':
-            print(request.POST)
-
-        if action == 'post-review':
+            if len(edited_review) >= 10001 or edited_review == '':
+                return JsonResponse({'message': 'Review cannot be edited.'}, status=400)
+            else:
+                try:
+                    review_to_update = get_object_or_404(Reviews, id=edited_review['id'])
+                    review_to_update.review = edited_review['review']
+                    review_to_update.save()
+                    return JsonResponse({'message': 'Review Saved'}, status=200)
+                except Exception:
+                    pass
+        try:
             review = request.POST['review-textarea']
 
             if len(review) >= 10001:
@@ -121,6 +129,8 @@ def game_view(request, app_id):
             review.save()
             messages.success(request, 'Review saved successfully.')
             return redirect('game_url', app_id=app_id)
+        except KeyError:
+            pass
 
     game = get_object_or_404(Games, app_id=app_id)
     video = None

@@ -3,6 +3,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name='csrf-token' content='{{ csrf_token }}'>
     <title>{{ game.name }}</title>
     <script src='{% static "js/editUserReview.js" %}'></script>
 </head>
@@ -32,7 +33,7 @@
 
 {% if user_review %}
 <h3>Your Review:</h3>
-<span id='user-review' data-review-id='{{ user_review.id }}' data-post-url='{% url "game_url" game.app_id %}'>{{ user_review.review }} <a href='#' id='edit-user-review'>Edit</a></span> 
+<span id='user-review' data-review-id='{{ user_review.id }}' data-post-url='{% url "game_url" game.app_id %}'>{{ user_review.review }} <a href='#' id='edit-user-review'>Edit</a></span><br> 
     Posted on: {{ user_review.create_ts }}
 
 {% else %}
