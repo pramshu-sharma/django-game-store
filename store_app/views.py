@@ -98,10 +98,14 @@ def registration_view(request):
     
 @login_required(login_url='login_url')
 def game_view(request, app_id):
+    # check csrf token in JS
     flush_store_filter_session_variables(request)
 
     if request.method == 'POST':
         action = request.POST['action']
+
+        if action == 'save-user-review':
+            print(request.POST)
 
         if action == 'post-review':
             review = request.POST['review-textarea']
@@ -367,9 +371,8 @@ def test_view(request):
     if request.method == 'POST':
         try:
             post_review = json.loads(request.body.decode('utf-8'))
-            print(post_review)
             new_review = get_object_or_404(EditReviewTest, id=post_review['id'])
-            new_review.review = post_review['review']
+            new_review.review = post_review['review'].strip()
             new_review.save()
             return JsonResponse({'message': 'review posted'}, status=200)
         except json.JSONDecodeError:

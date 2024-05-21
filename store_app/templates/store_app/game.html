@@ -1,15 +1,17 @@
 <!DOCTYPE html>
+{% load static %}
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <title>{{ game.name }}</title>
+    <script src='{% static "js/editUserReview.js" %}'></script>
 </head>
 <body>
 <h3>Logged in as: {{ request.user }}</h3>
 <h1>{{ game.name }}</h1>
 <img src="{{ game.image_main }}">
 {% if video %}
-<video width="460" height="215" controls autoplay muted>
+<video width="460" height="215" controls muted>
     <source src="{{ video }}" type="video/mp4">
 </video>
 {% endif %}
@@ -30,7 +32,9 @@
 
 {% if user_review %}
 <h3>Your Review:</h3>
-<h4>{{ user_review.review }} (Edit)</h4> Posted on: {{ user_review.create_ts }}
+<span id='user-review' data-review-id='{{ user_review.id }}' data-post-url='{% url "game_url" game.app_id %}'>{{ user_review.review }} <a href='#' id='edit-user-review'>Edit</a></span> 
+    Posted on: {{ user_review.create_ts }}
+
 {% else %}
 Post a Review (10000 characters max):
 <form action='{% url "game_url" game.app_id %}' method='post'>
