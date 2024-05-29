@@ -154,6 +154,3 @@ class Reviews(models.Model):
         unique_together = ('user', 'game')
 
 
-class EditReviewTest(models.Model):
-    review = models.TextField()
-    create_ts = models.DateTimeField(auto_now_add=True)

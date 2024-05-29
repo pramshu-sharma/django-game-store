@@ -18,9 +18,8 @@ from django.urls import get_resolver, reverse
 from .forms import RegistrationForm, LoginForm
 from .models import (
     Games, CustomUser, Wishlist, Cart, PublisherGame, Publisher,
-    SalePublisher, Genre, GenreGame, Reviews, EditReviewTest
+    SalePublisher, Genre, GenreGame, Reviews
 )
-
 
 def flush_store_filter_session_variables(request):
     keys = ['selected_genres', 'selected_platforms', 'selected_prices', 'selected_publisher']
@@ -28,36 +27,42 @@ def flush_store_filter_session_variables(request):
     for key in keys:
         if key in request.session:
             del request.session[key]
-def login_view(request): # needs to check incorrect username and password
+def login_view(request):
     if request.user.is_authenticated:
         return redirect('store_url')
-
+    # POST request password is not hashed.
     if request.method == 'POST':
         form = LoginForm(data=request.POST)
+        print(request.POST)
         if form.is_valid():
             username = form.cleaned_data['username']
             password = form.cleaned_data['password']
 
             try:
                 user = CustomUser.objects.get(username=username)
-            except Exception as e:
-                messages.error(request, 'User not Found.')
+            except CustomUser.DoesNotExist:
+                messages.error(request, 'User does not exist.')
+                return redirect('login_url')
 
-            user = authenticate(request, username=username, password=password)
-            if user is not None:
-                login(request, user)
+            authenticated_user = authenticate(request, username=username, password=password)
+            if authenticated_user is not None:
+                login(request, authenticated_user)
                 return redirect('store_url')
             else:
-                messages.error(request, 'Unable to login.')
+                messages.error(request, 'Invalid username or password.')
+                return redirect('login_url')
+        else:
+            messages.error(request, 'Check errors below.')
 
+    form = LoginForm()
     context = {
-        'form': LoginForm()
+        'form': form
     }
     return render(request, 'store_app/login.html', context)
 
 def registration_view(request):
     if request.user.is_authenticated:
-        return redirect('home_url')
+        return redirect('store_url')
 
     if request.method == 'POST':
         form = RegistrationForm(data=request.POST, files=request.FILES)
@@ -377,19 +382,4 @@ def publishers_view(request):
     return render(request, 'store_app/publishers.html', context)
 
 def test_view(request):
-    # cannot edit review after JS POST request
-    if request.method == 'POST':
-        try:
-            post_review = json.loads(request.body.decode('utf-8'))
-            new_review = get_object_or_404(EditReviewTest, id=post_review['id'])
-            new_review.review = post_review['review'].strip()
-            new_review.save()
-            return JsonResponse({'message': 'review posted'}, status=200)
-        except json.JSONDecodeError:
-            return  JsonResponse({'message': 'Something went wrong'}, status=400)
-
-    reviews = EditReviewTest.objects.all()
-    context = {
-        'reviews': reviews
-    }
-    return render(request, 'store_app/test.html', context)
+    raise NotImplementedError('No Test Logic Active')
