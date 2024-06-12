@@ -1,57 +1,130 @@
-<!DOCTYPE html>
+{% extends 'base.html' %}
+{% block head %}
 {% load static %}
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
     <meta name='csrf-token' content='{{ csrf_token }}'>
-    <title>{{ game.name }}</title>
     <script src='{% static "js/editUserReview.js" %}'></script>
-</head>
-<body>
-<h3>Logged in as: {{ request.user }}</h3>
-<h1>{{ game.name }}</h1>
-<img src="{{ game.image_main }}">
-{% if video %}
-<video width="460" height="215" controls muted>
-    <source src="{{ video }}" type="video/mp4">
-</video>
-{% endif %}
-<p><strong>Release Date:</strong> {{ game.release_date }}</p>
-<p><strong>Description:</strong> {{ game.description_long }}</p>
-<p><strong>Price:</strong>{% if game.sale_price %} [ON SALE] ${{ game.sale_price }} <s>${{ game.price }}</s>{% else %} ${{ game.price }}{% endif %}</p>
-<p><strong>Categories:</strong></p>
-{% if categories %}
-<p>{% for category in categories %}{{ category }} {% endfor %}</p>
+    <style>
+        body {
+            background-color: #212121;
+            color: #9e9e9e;     
+        }
 
-{% endif %}
-{% if messages %}
-{% for message in messages %}
-    {{ message }}<br>
-{% endfor %}
-{% endif %}
-<hr>
+        h3 {
+            color: #f57c00;
+        }
 
-{% if user_review %}
-<h3>Your Review:</h3>
-<span id='user-review' data-review-id='{{ user_review.id }}' data-post-url='{% url "game_url" game.app_id %}'>{{ user_review.review }} <a href='#' id='edit-user-review'>Edit</a></span><br> 
-    Posted on: {{ user_review.create_ts }}
+        .container {
+            background-color: #212121;
+        }
 
-{% else %}
-Post a Review (10000 characters max):
-<form action='{% url "game_url" game.app_id %}' method='post'>
-{% csrf_token %}
-<textarea name='review-textarea' rows='4' cols='100'></textarea><br>
-<button type='submit' name='action' value='post-review'>Post Review</button>
-</form>
-<hr>
-{% endif %}
+        .price-label, .release-date-label {
+            color: #f57c00;
+        }
 
+        .game-poster {
+            width: 100%;
+            text-align: center;
+        }
+        .game-poster img {
+            width: 100%;
+            height: auto;
+        }
 
-<hr>
-<h3>Reviews:</h3>
-{% for review in reviews %}
-    <h4>{{ review.review }}</h4><br>By: <strong>{{ review.user }}</strong> Posted on: {{ review.create_ts }}
+        .screenshot-row {
+            display: flex;
+            flex-wrap: wrap;
+        }
+        
+        .screenshot-row .col {
+            flex: 1 1 33.3333%;
+            max-width: 33.3333%;
+            padding: 5px; /* Adjust padding as needed */
+        }
+        
+        .screenshot-thumbnail {
+            width: 100%;
+            height: auto;
+        }
+
+    </style>
+{% endblock %}
+{% block title %} 
+    {{ game.name }}
+{% endblock %}
+{% block body %}
+<div class="container">
+    <div class="row">
+        <div class="col s12">
+            <h3>{{ game.name }}</h3>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col s12">
+            <div class="card-panel grey darken-3 z-depth-3">
+                <div class="row">
+                    <div class="col s12 m7 l7">
+                        {% if video %}
+                        <video class="responsive-video" controls muted>
+                            <source src="{{ video }}" type="video/mp4">
+                        </video>
+                        {% endif %}
+                    </div>
+                    <div class="col s12 m5 l5">
+                        <div class="game-poster center-align">
+                            <img src="{{ game.image_main }}" class="responsive-img" alt="Game Poster">
+                        </div>
+                        <div class="screenshot-row">
+                            {% for screenshot in screenshots %}
+                            <div class="col s4">
+                                <img class="screenshot-thumbnail responsive-img" src="{{screenshot}}">
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <p><strong>Release Date:</strong> {{ game.release_date }}</p>
+    <p><strong>Description:</strong> {{ game.description_long }}</p>
+    <p><strong>Price:</strong>{% if game.sale_price %} [ON SALE] ${{ game.sale_price }} <s>${{ game.price }}</s>{% else %} ${{ game.price }}{% endif %}</p>
+    <p><strong>Categories:</strong></p>
+    {% if categories %}
+    <p>{% for category in categories %}{{ category }} {% endfor %}</p>
+    {% endif %}
+    {% if messages %}
+    {% for message in messages %}
+        {{ message }}<br>
+    {% endfor %}
+    {% endif %}
     <hr>
-{% endfor %}
-</body>
-</html>
+
+    <!-- review section -->
+
+    {% if user_review %}
+    <h3>Your Review:</h3>
+    <span id='user-review' data-review-id='{{ user_review.id }}' data-post-url='{% url "game_url" game.app_id %}'>{{ user_review.review }} <a href='#' id='edit-user-review'>Edit</a></span><br> 
+        Posted on: {{ user_review.create_ts }}
+
+    {% else %}
+    Post a Review (10000 characters max):
+    <form action='{% url "game_url" game.app_id %}' method='post'>
+    {% csrf_token %}
+    <textarea name='review-textarea' rows='4' cols='100'></textarea><br>
+    <button type='submit' name='action' value='post-review'>Post Review</button>
+    </form>
+    <hr>
+    {% endif %}
+
+
+    <hr>
+    <h3>Reviews:</h3>
+    {% for review in reviews %}
+        <h4>{{ review.review }}</h4><br>By: <strong>{{ review.user }}</strong> Posted on: {{ review.create_ts }}
+        <hr>
+    {% endfor %}
+</div>
+<script>
+
+</script>
+{% endblock %}

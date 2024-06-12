@@ -1,21 +1,85 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Register</title>
-</head>
+{% extends 'base.html' %}
+{% block head %}
+{% load static %}
+    <style>
+        body {
+            background-color: #212121;
+            
+        }
 
-<body>
-<form action="{% url 'registration_url' %}" method="post" enctype="multipart/form-data">
-    {% csrf_token %}
-    {{form.as_p}}
-    <input type="submit" value="Register">
-</form>
-{% if messages %}
-    {% for message in messages %}
-        <p>{{ message }}</p>
-        <br>
-    {% endfor %}
-{% endif %}
-</body>
-</html>
+        input[type="text"]:focus,
+        input[type="password"]:focus {
+            color: grey;
+            border-bottom: 2px solid #f57c00 !important; 
+            box-shadow: 0 1px 0 0 #f57c00 !important;
+        }
+
+        .input-field input[type="text"]:focus + label,
+        .input-field input[type="password"]:focus + label {
+            color: #f57c00 !important;
+        }
+
+        .input-field i.material-icons.prefix.active {
+            color: #f57c00;
+        }
+
+    </style>
+{% endblock %}
+{% block title %} 
+    Registration
+{% endblock %}
+{% block body %}
+    <div class="row" style="height: 0.25vh; background-color: #f57c00;">
+    </div>
+    <div class="row logo-container center-align">
+        <img src="{% static 'image/logo.png' %}" id="logo" width="300" height="135">
+    </div>
+    <div class="row">
+        <div class="col s12 m6 offset-m3 l4 offset-l4">
+            <div class="card-panel grey darken-3 grey-text z-depth-4">
+                <div class="card-content">
+                    <span class="card-title left-align"><h6>Registration</h6></span>
+                    <form action="{% url 'registration_url' %}" method='post'>
+                        {% csrf_token %}
+                    <div class="input-field">
+                        <i class="material-icons prefix">account_circle</i>
+                        <input type="text" id="username-input" name="username" class="grey-text">
+                        <label for="username-input">Username: </label> 
+                    </div>
+                    <div class="input-field">
+                        <i class="material-icons prefix">vpn_key</i>
+                        <input type="password" id="password-input" name="password" class="grey-text">
+                        <label for="password-input">Password: </label>
+                    </div>
+                    <div class="input-field">
+                        <i class="material-icons prefix">photo_camera</i>
+                        <div class="file-field input-field">
+                            <div class="btn">
+                                <span>Upload</span>
+                                <input type="file" id="profile-picture-input" name="profile-picture">
+                            </div>
+
+                        </div>
+                    </div>
+                    <button class="btn orange darken-2 waves-effect waves-light center-align">Register</button><br><br>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col s12 m6 offset-m3 l4 offset-l4 right-align">
+            <span class="copyright grey-text"><i class="tiny material-icons">copyright</i> Elysium Games MMXXIV</span>
+        </div>
+    </div>
+{% endblock %}
+
+<!--
+username
+password
+profile_picture
+first_name
+last_name
+email
+
+-->

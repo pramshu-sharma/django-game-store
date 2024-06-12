@@ -4,7 +4,6 @@
     <style>
         body {
             background-color: #212121;
-            
         }
 
         input[type="text"]:focus,
@@ -22,6 +21,19 @@
         .input-field i.material-icons.prefix.active {
             color: #f57c00;
         }
+
+        input[type="text"]:-webkit-autofill,
+        input[type="password"]:-webkit-autofill {
+            -webkit-box-shadow: 0 0 0 30px #212121 inset !important;
+            -webkit-text-fill-color: grey !important;
+            border-bottom: 2px solid #f57c00 !important; 
+            box-shadow: 0 1px 0 0 #f57c00 !important;
+        }
+
+        .input-field input[type="text"]:-webkit-autofill + label,
+        .input-field input[type="password"]:-webkit-autofill + label {
+            color: #f57c00 !important;
+        }
     </style>
 {% endblock %}
 {% block title %} 
@@ -30,7 +42,7 @@
 {% block body %}
 <div class="row" style="height: 0.25vh; background-color: #f57c00;"></div>
 <div class="row logo-container center-align">
-    <img src="{% static 'image/logo.png' %}" id="logo" width="224" height="80">
+    <img src="{% static 'image/logo.png' %}" id="logo" width="300" height="135">
 </div>
 <div class="row">
     <div class="col s12 m6 offset-m3 l4 offset-l4">
@@ -41,12 +53,12 @@
                     {% csrf_token %}
                 <div class="input-field">
                     <i class="material-icons prefix">account_circle</i>
-                    <input type="text" id="username-input" name="username">
-                    <label for="username-input">Username: </label> <!-- tab to next field might be bugged, change inactive color to grey-->
+                    <input type="text" id="username-input" name="username" class="grey-text">
+                    <label for="username-input">Username: </label> 
                 </div>
                 <div class="input-field">
                     <i class="material-icons prefix">vpn_key</i>
-                    <input type="password" id="password-input" name="password">
+                    <input type="password" id="password-input" name="password" class="grey-text">
                     <label for="password-input">Password: </label>
                 </div>
                 <button class="btn orange darken-2 waves-effect waves-light center-align">Login</button><br><br>
@@ -54,10 +66,12 @@
                 <p>Don't have an account? <a href="{% url 'registration_url' %}">Register Now!</a></p>
             </div>
         </div>
+    </div>
 </div>
 <div class="row">
     <div class="col s12 m6 offset-m3 l4 offset-l4 right-align">
         <span class="copyright grey-text"><i class="tiny material-icons">copyright</i> Elysium Games MMXXIV</span>
     </div>
 </div>
+
 {% endblock %}

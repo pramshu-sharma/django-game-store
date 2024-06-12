@@ -30,10 +30,10 @@ def flush_store_filter_session_variables(request):
 def login_view(request):
     if request.user.is_authenticated:
         return redirect('store_url')
-    # POST request password is not hashed.
+
     if request.method == 'POST':
         form = LoginForm(data=request.POST)
-        print(request.POST)
+
         if form.is_valid():
             username = form.cleaned_data['username']
             password = form.cleaned_data['password']
@@ -69,9 +69,9 @@ def registration_view(request):
         if form.is_valid():
             username = form.cleaned_data['username']
             password = form.cleaned_data['password']
-            profile_picture = form.cleaned_data['profile_picture']
-            first_name = form.cleaned_data['first_name']
-            last_name = form.cleaned_data['last_name']
+            profile_picture = form.cleaned_data['profile-picture']
+            first_name = form.cleaned_data['first-name']
+            last_name = form.cleaned_data['last-name']
             email = form.cleaned_data['email']
 
             user = CustomUser(username=username, password=password, first_name=first_name, last_name=last_name, email=email)
@@ -140,7 +140,11 @@ def game_view(request, app_id): # CSRF token in HTML's meta tag might not be a g
     game = get_object_or_404(Games, app_id=app_id)
     video = None
     if game.video:
-        video = game.video.split(',')[0] if ',' in  game.video else game.video
+        video = game.video.split(',')[0] if ',' in game.video else game.video
+
+    screenshots = None
+    if game.screenshot:
+        screenshots = game.screenshot.split(',')[:3] if ',' in game.screenshot else game.screenshot
 
     reviews = Reviews.objects.filter(game=game.id)
     user_review = None
@@ -156,6 +160,7 @@ def game_view(request, app_id): # CSRF token in HTML's meta tag might not be a g
         'reviews': reviews,
         'user_review': user_review,
         'categories': game.category.split(','),
+        'screenshots': screenshots,
         'video': video
     }
     return render(request, 'store_app/game.html', context)
@@ -256,6 +261,7 @@ def store_view(request):
             query_genre &= q_object
 
         store_games = store_games.filter(query_genre)
+        print(store_games.query)
 
     if 'selected_platforms' in request.session and request.session['selected_platforms'] is not None:
         query_platform = Q()
@@ -382,4 +388,9 @@ def publishers_view(request):
     return render(request, 'store_app/publishers.html', context)
 
 def test_view(request):
-    raise NotImplementedError('No Test Logic Active')
+    games = Games.objects.values('id', 'name', 'release_date').all()[:15]
+
+    print(request.GET)
+    context = {'games': games}
+    return render(request, 'store_app/test.html', context)
+
